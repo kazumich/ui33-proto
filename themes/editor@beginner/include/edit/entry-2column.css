@@ -125,6 +125,24 @@
   }
 }
 
+/* パンくずの文字サイズ
+------------------------------
+  .acms-admin-topicpath の既定は 11px で、編集画面の他の文字（14px〜）に対して
+  小さすぎるという指摘があったため少し上げる。
+
+  リンクの a にも font-size: 11px が直接指定されていて継承では上書きできないので、
+  ol と a の両方を指定している。
+  既定の line-height は 1 で、折り返したときに行が詰まりすぎるため少し広げる。 */
+.entryFormTopicpath {
+  --entry-form-topicpath-font-size: 13px;
+}
+
+.entryFormTopicpath .acms-admin-topicpath,
+.entryFormTopicpath .acms-admin-topicpath a {
+  font-size: var(--entry-form-topicpath-font-size);
+  line-height: 1.4;
+}
+
 /* 2カラムの切り替えは、ビューポート幅ではなく「フォームに使える幅」で判定する。
    この画面(entry-edit)は管理ナビが非表示だが、entry_editor など他の編集画面では
    管理ナビ(245px)が表示され、同じビューポート幅でも使える幅が大きく変わるため、
