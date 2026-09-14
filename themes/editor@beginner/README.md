@@ -31,8 +31,9 @@ admin/entry/field_side.html      SEO設定をメタ情報カラムへ
 admin/entry/field_foot.html      空（beginner の URLコンテキスト別 _foot を出さない）
 admin/entry/field-main-image.html  メイン画像の中身
 admin/entry/field-seo.html         SEO設定の中身（メイン画像は含まない）
-include/edit/entry-2column.css   レイアウトと入力欄のCSS
-include/edit/entry-2column.js    高さの実測、タイトルの改行抑止、flatpickr の設定
+css/entry-2column.css            レイアウトと入力欄のCSS
+js/entry-2column.js              高さの実測、タイトルの改行抑止、flatpickr の設定
+js/entry-status-select.js        ステータス用 RichSelect
 ```
 
 親テーマのファイルは**1つも書き換えていない**。`beginner` が更新されても、

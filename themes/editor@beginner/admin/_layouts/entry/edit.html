@@ -20,8 +20,8 @@
   - メタ情報カラム = タイトル／ステータス／カテゴリー／サブカテゴリー／タグ／日時／
     会員限定／詳細設定／位置情報／カスタムフィールド
   - 本文カラム = 関連エントリー／ユニットエディター／コンテキスト別フィールド
-  - DOM順は「メタ情報 → 本文」。1カラムに戻ったときはこの順に縦積みされ、
-    元の1カラムレイアウトと同じ並び（メタ情報が本文の上）になる
+  - DOM順は「メタ情報 → 本文」だが、1カラム時はCSSで「本文 → メタ情報」に並べ、
+    field_foot.html の後へメタ情報を置く
   - 2カラム時は grid-area で本文を左・メタ情報を右に明示配置する
 
   ■ カスタムフィールドの挿入位置（スロット）
@@ -56,7 +56,7 @@
 
   ■ レイアウトCSS
   グリッド本体はスタイルガイドの .acms-admin-cssgrid を使用し、
-  スタイルガイドで賄えない差分のみ include/edit/entry-2column.css に定義している。
+  スタイルガイドで賄えない差分のみ css/entry-2column.css に定義している。
   @see https://developer.a-blogcms.jp/document/reference/styleguide/
 -->
 <!-- BEGIN_MODULE Touch_Edit -->
@@ -73,10 +73,10 @@
 
      JS は ACMS.Ready() を使うが、acms.js は <head> で同期読み込みされるので
      body の途中で読み込んでも ACMS は定義済みになっている。 -->
-<link rel="stylesheet" href="/include/edit/entry-2column.css">
-<script src="/include/edit/entry-2column.js" charset="UTF-8"></script>
+<link rel="stylesheet" href="/css/entry-2column.css">
+<script src="/js/entry-2column.js" charset="UTF-8"></script>
 
-<script src="/include/edit/entry-status-select.js" charset="UTF-8"></script>
+<script src="/js/entry-status-select.js" charset="UTF-8"></script>
 
 @include("/admin/entry/style.html")
 
@@ -253,6 +253,11 @@
     <li><a href="{url}">{title}</a></li>
     <!-- END entry -->
   </ol>
+  <div class="entryFormMeasureSwitcher" role="group" aria-label="<!--T-->本文の横幅<!--/T-->">
+    <button type="button" class="entryFormMeasureButton" data-entry-editor-measure="25" aria-pressed="false" aria-label="<!--T-->本文幅25文字<!--/T-->">25</button>
+    <button type="button" class="entryFormMeasureButton" data-entry-editor-measure="40" aria-pressed="true" aria-label="<!--T-->本文幅40文字<!--/T-->">40</button>
+    <button type="button" class="entryFormMeasureButton" data-entry-editor-measure="70" aria-pressed="false" aria-label="<!--T-->本文幅70文字<!--/T-->">70</button>
+  </div>
 </nav>
 <!-- END_MODULE Topicpath -->
 <!-- END_IF -->
@@ -273,46 +278,28 @@
     <div class="entryFormWrapper">
       <div class="entryFormGrid acms-admin-cssgrid">
 
-      <!-- ===== メタ情報カラム（2カラム時は右／1カラム時は本文の上） ===== -->
+      <!-- ===== メタ情報カラム（2カラム時は右／1カラム時は本文の下） ===== -->
       <div class="entryFormSide">
         <div class="entryFormSideInner acms-admin-field-container">
           <div class="entryFormHead">
             <table class="entryFormTable acms-admin-table-entry acms-admin-table-admin-entry">
-              @section("entry-title")
-              <tr id="entry-title-display">
-                <th id="labelTitle">
-                  <label for="entry-title" id="entry-title-label">
-                    <!--T-->タイトル<!--/T-->
-                  </label>
+              @section("entry-title2")
+              <!--
+              <tr id="entry-title2-display">
+                <th id="labelTitle2">
+                  <label for="entry-title2" id="entry-title2-label">タイトル</label>
                 </th>
                 <td>
-                  <!-- 1行から始まり、文字数に応じて行が増える（.auto-height）。
-                       改行は js-no-newline で無効化する（include/edit/entry-2column.js）-->
                   <textarea
-                    name="title"
-                    id="entry-title"
+                    name="title2"
+                    id="entry-title2"
                     rows="1"
                     class="acms-admin-form-width-full auto-height js-no-newline"
-                  >{title}</textarea>
-                  <input type="hidden" name="entry[]" value="title" />
-                  <input type="hidden" name="title:validator#required" id="validator-title-required" />
-                  <input type="hidden" name="title:validator#maxlength" value="255" id="validator-title-maxlength" />
-                  <div role="alert" aria-live="assertive">
-                    <div data-validator-label="validator-title-required" class="validator-result-{title:validator#required}">
-                      <p class="error-text">
-                        <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
-                        <!--T-->タイトルが入力されていません。<!--/T-->
-                      </p>
-                    </div>
-                    <div data-validator-label="validator-title-maxlength" class="validator-result-{title:validator#maxlength}">
-                      <p class="error-text">
-                        <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
-                        <!--T-->タイトルは255文字以内で入力してください。<!--/T-->
-                      </p>
-                    </div>
-                  </div>
+                  >{title2}</textarea>
+                  <input type="hidden" name="entry[]" value="title2" />
                 </td>
               </tr>
+              -->
               @endsection
               @section("entry-status")
               <tr id="entry-status-display">
@@ -726,6 +713,38 @@
 
       <!-- ===== 本文カラム（2カラム時は左） ===== -->
       <div class="entryFormMain">
+        <!-- 保存対象のタイトル -->
+        @section("entry-title")
+        <div class="entryFormMainTitle" id="entry-title-display">
+          <div class="entryFormMainTitleLabelRow">
+            <label for="entry-title" id="entry-title-label"><!--T-->タイトル<!--/T--></label>
+            <div class="entryFormMainTitleValidation" role="alert" aria-live="assertive">
+              <div data-validator-label="validator-title-required" class="validator-result-{title:validator#required}">
+                <p class="error-text">
+                  <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
+                  <!--T-->タイトルが入力されていません。<!--/T-->
+                </p>
+              </div>
+              <div data-validator-label="validator-title-maxlength" class="validator-result-{title:validator#maxlength}">
+                <p class="error-text">
+                  <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
+                  <!--T-->タイトルは255文字以内で入力してください。<!--/T-->
+                </p>
+              </div>
+            </div>
+          </div>
+          <textarea
+            name="title"
+            id="entry-title"
+            rows="1"
+            class="acms-admin-form-width-full auto-height js-no-newline"
+          >{title}</textarea>
+          <input type="hidden" name="entry[]" value="title" />
+          <input type="hidden" name="title:validator#required" id="validator-title-required" />
+          <input type="hidden" name="title:validator#maxlength" value="255" id="validator-title-maxlength" />
+        </div>
+        @endsection
+
         <div class="acms-admin-field-container">
           <div class="entryFormHead">
             @section("entry-related")

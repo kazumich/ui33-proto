@@ -11,13 +11,13 @@ CMS 本体のビルドや外部 CDN に依存せず、生成済み JS をテー�
 ## 再ビルド
 
 このディレクトリで `npm ci`、`npm run build` を実行する。
-バンドルは `themes/editor@beginner/include/edit/entry-status-select.js` に出力される。
+バンドルは `themes/editor@beginner/js/entry-status-select.js` に出力される。
 
 ## サーバー反映
 
 利用テーマの次の2ファイルをアップロードする。
 
 - `admin/_layouts/entry/edit.html`
-- `include/edit/entry-status-select.js`
+- `js/entry-status-select.js`
 
 ソースと node_modules をサーバーに配置する必要はない。

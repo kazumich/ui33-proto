@@ -50,7 +50,7 @@ themes/editor@beginner/
 
 ### 3. ステータスセレクト（同梱済み）
 
-`include/edit/entry-status-select.js` はビルド済みのものを同梱しています。
+`js/entry-status-select.js` はビルド済みのものを同梱しています。
 そのままで動くので、通常はビルド不要です。
 
 作り直す場合は [`src/entry-status-select/`](src/entry-status-select/) で `npm ci && npm run build`。
@@ -86,8 +86,9 @@ news@editor@site  →  editor@site  →  site  →  system
 themes/editor@beginner/            テーマ本体
 ├── admin/_layouts/entry/edit.html   2カラムのレイアウト。CSS / JS もここから読み込む
 ├── admin/entry/                     カスタムフィールドのスロットと中身
-└── include/edit/
-    ├── entry-2column.css            レイアウトと入力欄
+├── css/
+│   └── entry-2column.css            レイアウトと入力欄
+└── js/
     ├── entry-2column.js             高さの実測、タイトルの改行抑止、位置情報の開閉
     └── entry-status-select.js       ステータス用リッチセレクト（ビルド済み）
 

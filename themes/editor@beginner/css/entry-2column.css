@@ -134,7 +134,7 @@
   ol と a の両方を指定している。
   既定の line-height は 1 で、折り返したときに行が詰まりすぎるため少し広げる。 */
 .entryFormTopicpath {
-  --entry-form-topicpath-font-size: 13px;
+  --entry-form-topicpath-font-size: 14px;
 
   /* 画面の左端に文字が張り付かないよう少しだけ内側に入れる。
      max-width と margin-inline: auto は @media 側で指定していて
@@ -146,6 +146,88 @@
 .entryFormTopicpath .acms-admin-topicpath a {
   font-size: var(--entry-form-topicpath-font-size);
   line-height: 1.4;
+}
+
+/* 本文幅の切り替え。選択値は entry-2column.js が localStorage から復元する。 */
+.entryFormTopicpath {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+.entryFormTopicpath .acms-admin-topicpath {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.entryFormMeasureSwitcher {
+  display: inline-flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: #f7f7f8;
+  border: 1px solid #d2d2d6;
+  border-radius: 4px;
+}
+
+.entryFormMeasureButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 24px;
+  padding: 0 8px;
+  color: #555;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.entryFormMeasureButton + .entryFormMeasureButton {
+  border-left: 1px solid #d2d2d6;
+}
+
+.entryFormMeasureButton:hover {
+  background: #e8e8eb;
+}
+
+.entryFormMeasureButton:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #1861d8;
+  outline-offset: -2px;
+}
+
+.entryFormMeasureButton[aria-pressed='true'] {
+  color: #333;
+  font-weight: 600;
+  background: #d8d8dc;
+}
+
+@media (max-width: 767.98px) {
+  .entryFormMeasureSwitcher {
+    display: none;
+  }
+}
+
+html[data-entry-editor-measure='25'] #main:has(#entryForm),
+html[data-entry-editor-measure='25'] #entryForm {
+  --entry-form-measure: 25rem;
+  --entry-form-measure-min: 25rem;
+}
+
+html[data-entry-editor-measure='70'] #main:has(#entryForm),
+html[data-entry-editor-measure='70'] #entryForm {
+  --entry-form-measure: 70rem;
+  --entry-form-measure-min: 40rem;
+  --entry-form-width: calc(var(--entry-form-wrapper-gutter) + var(--entry-form-main-width));
 }
 
 /* 2カラムの切り替えは、ビューポート幅ではなく「フォームに使える幅」で判定する。
@@ -187,11 +269,27 @@
 }
 
 /* 既定は1カラム。.acms-admin-cssgrid の12カラム定義を1本のトラックに差し替え、
-   本文が読みやすい行長を超えないよう絞って中央寄せする。
-   DOM順どおり「メタ情報 → 本文」に縦積みされ、元の1カラムレイアウトと同じ並びになる */
+   本文が読みやすい行長を超えないよう絞って中央寄せする。 */
 .entryFormWrapper .entryFormGrid {
   grid-template-columns: minmax(0, var(--entry-form-main-width));
   justify-content: center;
+}
+
+/* 1カラムでは本文を先にし、field_foot の後へメタ情報を置く。 */
+.entryFormWrapper .entryFormMain {
+  order: 1;
+}
+
+.entryFormWrapper .entryFormSide {
+  order: 2;
+}
+
+/* 1カラム時はラベル列を少し詰め、基本項目を左へ寄せる。
+   2カラム時は下のコンテナクエリで th が縦積みになるため影響しない。 */
+@media (min-width: 768px) {
+  .entryFormSide .entryFormTable th {
+    width: 8em;
+  }
 }
 
 /* 2カラム。本文・メタ情報とも minmax で伸縮させる。
@@ -289,7 +387,7 @@
      グリッドの高さをビューポートから「グリッド以外の高さ」を引いた値にする。
      この差分（パンくず・見出し・ボタンバー・バージョン情報・保存バー・
      .entryFormWrapper の上下 padding の合計）は画面の状態によって変わるので、
-     include/edit/entry-2column.js の fitEntryFormColumns() が実測して
+     js/entry-2column.js の fitEntryFormColumns() が実測して
      --entry-form-grid-offset に入れる。下の値は JS が動く前のフォールバック。
 
      グリッドの高さがページに収まるので、ページ自体はスクロールせず
@@ -442,7 +540,7 @@
 ------------------------------
   1行から始まり、文字数が増えると max-height まで行が増える。
   field-sizing が未対応のブラウザでは高さが min-height で固定されるため、
-  include/edit/entry-2column.js 側で JS フォールバックを用意している。
+  js/entry-2column.js 側で JS フォールバックを用意している。
 
   max-height は「何行まで見せるか」から逆算する。
   .acms-admin-form textarea の line-height は 1.7、
@@ -463,17 +561,70 @@
   メタ情報カラムに並ぶ項目のうち、タイトルだけは「そのページの名前」なので
   他の入力欄と同じ見た目だと埋もれる。文字サイズと太さで差をつける。
 
-  .auto-height の max-height は em 基準（1.7em × 行数）なので、
-  文字サイズを変えても4行までという上限はそのまま保たれる。
-  18px なら 1行 30.6px、4行で 133px。
+  タイトルは line-height: 1.4 に合わせて max-height も上書きし、
+  文字サイズを変えても4行までという上限を保つ。
 
   id で指定しているのは、.entryFormSide の入力欄をまとめて 16px にしている
   指定（クラス2つ）より強くするため。 */
 #entry-title {
-  --entry-form-title-font-size: 18px;
+  --entry-form-title-font-size: 32px;
 
+  padding-top: 8px;
+  padding-left: 8px;
   font-size: var(--entry-form-title-font-size);
   font-weight: 700;
+  line-height: 1.4;
+  max-height: calc(1.4em * var(--auto-height-lines) + 14px);
+}
+
+@media (max-width: 767.98px) {
+  #entry-title {
+    --entry-form-title-font-size: 24px;
+  }
+}
+
+/* 本文カラム先頭のタイトル。 */
+.entryFormMainTitle {
+  margin-bottom: 10px;
+}
+
+.entryFormMainTitleLabelRow {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  margin-bottom: 3px;
+  gap: 8px;
+}
+
+.entryFormMainTitle label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-weight: 700;
+}
+
+.entryFormMainTitleValidation {
+  min-width: 0;
+}
+
+.entryFormMainTitleValidation .error-text {
+  overflow: hidden;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entryFormMainTitle textarea {
+  box-sizing: border-box;
+  padding: 5px 5px 4px;
+}
+
+/* 2カラムでは、右側のステータスラベル・入力欄と上端をそろえる。 */
+@container entry-form (min-width: 984px) {
+  html:not([data-entry-editor-measure='70']) .entryFormMainTitle {
+    padding-top: 6px;
+  }
 }
 
 /* 新規作成時にブロックエディターが画面の高さを使うようにする
@@ -484,7 +635,7 @@
   ユニットが2つ以上あるときは中身があるということなので解除する。
   こうしないとユニットを足すたびに画面の高さぶん積み上がってしまう。
 
-  最低高さは include/edit/entry-2column.js の fitEntryFormColumns() が実測して
+  最低高さは js/entry-2column.js の fitEntryFormColumns() が実測して
   --entry-form-editor-min-height に入れる。
   引く量（ユニットのツールバーと余白、ユニット追加ボタン、本文カラム上下の
   カスタムフィールド）はテーマの内容によって変わるので固定値にできない。
@@ -711,6 +862,17 @@
   line-height: 1.7;
 }
 
+/* ブロックエディターのコードブロックは、閲覧側既定の半分の余白にする。 */
+#entryForm .ProseMirror pre {
+  padding: calc(var(--entry-el-padding-sm) * 0.5);
+}
+
+@media (min-width: 48rem) {
+  #entryForm .ProseMirror pre {
+    padding: calc(var(--entry-el-padding-md) * 0.5);
+  }
+}
+
 /* 1カラムの基本項目と同じ位置まで、テーブルのセル余白を相殺する。 */
 @media (max-width: 767.98px) {
   .entryFormMainImage {
@@ -783,7 +945,7 @@
   常時置いておくと縦を取るので、虫眼鏡ボタンを押したときだけ開く。
 
   開いているかどうかは虫眼鏡側の aria-expanded が持ち、
-  JS はその付け外しだけを行う（include/edit/entry-2column.js）。 */
+  JS はその付け外しだけを行う（js/entry-2column.js）。 */
 .entryFormGeoDetails .acms-admin-form-group:first-child {
   display: none;
 }
@@ -823,4 +985,36 @@
    .acms-admin-btn は background-color に transition を持っているので指定はこれだけでよい */
 .entryFormGeoDetails .js-geo-search-toggle[aria-expanded='true'] {
   background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* 70字では本文を全幅で先頭に置き、設定欄をその下へ積む。 */
+@container entry-form (min-width: 984px) {
+  html[data-entry-editor-measure='70'] .entryFormWrapper .entryFormGrid {
+    grid-template-columns: minmax(0, var(--entry-form-main-width));
+    height: auto;
+    justify-content: center;
+  }
+
+  html[data-entry-editor-measure='70'] .entryFormWrapper .entryFormMain {
+    grid-area: auto;
+    order: 1;
+  }
+
+  html[data-entry-editor-measure='70'] .entryFormWrapper .entryFormSide {
+    grid-area: auto;
+    order: 2;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 40rem;
+    justify-self: center;
+  }
+
+  html[data-entry-editor-measure='70'] .entryFormMain,
+  html[data-entry-editor-measure='70'] .entryFormSide {
+    padding-inline: 0;
+    margin-inline: 0;
+    overflow: visible;
+    overscroll-behavior: auto;
+    scrollbar-gutter: auto;
+  }
 }
