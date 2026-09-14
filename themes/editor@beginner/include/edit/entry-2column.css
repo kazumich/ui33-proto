@@ -634,6 +634,44 @@
   }
 }
 
+/* アコーディオンの見出し
+------------------------------
+  高さを入力欄と同じにして、上に並ぶ項目と背の高さを揃える。
+  既定は padding 7px（= 約30px）で、38px の入力欄より低い。 */
+.entryFormSide .acms-admin-accordion-button {
+  padding-block: calc((var(--entry-form-control-min-height) - 16px) / 2);
+}
+
+/* 開いているときは、見出しと中身をつないだ1つの箱に見せる。
+
+  メタ情報カラムの下のほうで開くと、中身はカラムの外（スクロールしないと
+  見えない位置）に伸びる。矢印の回転だけだと「開いた」ことが伝わりにくいので、
+  押した場所そのものの形を変えて知らせる。
+  閉じているときは角丸のボタン、開くと下側の角が角ばってパネルと地続きになる。
+
+  クリックした見出しは動かさない。スクロールで見出しを送ってしまうと、
+  押した場所がカーソルの下から逃げて分かりにくくなるため。 */
+.entryFormSide details[open] > .acms-admin-accordion-button {
+  /* 押した場所そのものの色を変える。
+     パネルの背景（#f2f2f5）は管理画面の地の色とほぼ同じで、
+     開いても「箱が出た」ようには見えない。
+     矢印の回転だけでは弱いので、見出しを一段濃くして開いていることを示す。 */
+  background-color: #d2d2db;
+
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.entryFormSide details[open] > .acms-admin-accordion-panel {
+  border-end-start-radius: 6px;
+  border-end-end-radius: 6px;
+}
+
+/* 閉じるアニメーションの間は先に元の形へ戻す（矢印の戻し方と合わせる）*/
+.entryFormSide details[data-closing] > .acms-admin-accordion-button {
+  border-radius: 6px;
+}
+
 /* 複数行のタグと選択欄の枠の間に上下の余白を確保する。 */
 #entry-tag-display [class$="-control"] {
   padding-top: 4px;
