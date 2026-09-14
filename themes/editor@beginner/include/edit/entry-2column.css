@@ -323,6 +323,29 @@
   .entryFormSide {
     padding-right: calc(var(--entry-form-focus-gutter) + var(--entry-form-scrollbar-gutter));
   }
+
+  /* ステータスのセレクトの上端を、ブロックエディターの入力欄の上端に合わせる。
+     2カラムのときだけ。1カラムでは縦に積むので合わせる相手がいない。
+
+     実測での内訳（本文カラムの先頭から67px、メタ情報カラムの先頭から26px、差が41px）
+
+       本文カラム側 67px … 本文カラム上部のカスタムフィールド用コンテナの余白
+                           ＋ ユニットの枠
+                           ＋ ユニットのツールバー 32px
+                             （--acms-admin-unit-toolbar-min-height）
+                           ＋ .acms-admin-unit-content の padding-top 10px
+       メタ情報カラム側 26px … th の padding-top 7px ＋ ラベルの行
+                               ＋ td の padding-top 3px
+
+     ※ この位置合わせが成り立つのは「本文カラムの一番上がユニットのとき」だけ。
+       field.html にフィールドを置くとエディターが下がるので、その場合は
+       この値を見直すか 0 に戻すこと。JS で追いかけないのは、
+       追いかけても意味のある位置にならないため。 */
+  .entryFormSide {
+    --entry-form-side-offset: 41px;
+
+    padding-top: var(--entry-form-side-offset);
+  }
 }
 
 /* 入力欄の文字サイズと余白
