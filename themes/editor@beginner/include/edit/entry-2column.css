@@ -135,6 +135,11 @@
   既定の line-height は 1 で、折り返したときに行が詰まりすぎるため少し広げる。 */
 .entryFormTopicpath {
   --entry-form-topicpath-font-size: 13px;
+
+  /* 画面の左端に文字が張り付かないよう少しだけ内側に入れる。
+     max-width と margin-inline: auto は @media 側で指定していて
+     box-sizing: border-box も付いているので、外側の幅は変わらない。 */
+  padding-left: 5px;
 }
 
 .entryFormTopicpath .acms-admin-topicpath,
