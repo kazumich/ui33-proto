@@ -1,0 +1,45 @@
+<!-- BEGIN_MODULE Touch_GeolocationEntryFunction -->
+<details class="entryFormGeoDetails acms-admin-accordion">
+  <summary class="acms-admin-accordion-button">
+    <!--T-->位置情報<!--/T-->
+    <span class="acms-admin-icon-arrow-small-down acms-admin-margin-left-mini" aria-hidden="true"></span>
+  </summary>
+  <div class="acms-admin-accordion-panel">
+    <div id="geometry" class="js-entry-geo-edit clearfix">
+      <div class="acms-admin-vstack acms-admin-align-items-stretch">
+        <div class="entryFormGeoActions acms-admin-hstack">
+          <!-- BEGIN_IF [{geo_lat}/nem/_and_/{geo_lng}/nem/] -->
+          <button class="js-geo-button acms-admin-btn" type="button" data-type="delete" data-target="#geo-form">
+            <!--T-->位置情報を削除<!--/T-->
+          </button>
+          <!-- ELSE -->
+          <button class="js-geo-button acms-admin-btn" type="button" data-type="add" data-target="#geo-form">
+            <!--T-->位置情報を追加<!--/T-->
+          </button>
+          <!-- END_IF -->
+          <!-- 住所検索フォームの開閉。
+               住所で探すのは最初の1回だけなので、常に出しておかず必要なときに開く。
+               開いているかどうかは aria-expanded で持ち、表示の切り替えは CSS が行う
+               （include/edit/entry-2column.css）。 -->
+          <button
+            type="button"
+            class="js-geo-search-toggle acms-admin-btn"
+            aria-expanded="false"
+            aria-controls="input-text-map-search_text"
+          >
+            <i class="acms-admin-icon-search" aria-hidden="true"></i>
+            <span class="acms-admin-hide-visually"><!--T-->住所で検索する<!--/T--></span>
+          </button>
+        </div>
+        <div id="geo-form" style="display: none;">
+          <!-- BEGIN_IF [<!-- BEGIN_MODULE Config -->{geolocation_map_type}<!-- END_MODULE Config -->/eq/gmap] -->
+          @include("/admin/map/_google-map-picker.html")
+          <!-- ELSE -->
+          @include("/admin/map/_open-street-map-picker.html")
+          <!-- END_IF -->
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<!-- END_MODULE Touch_GeolocationEntryFunction -->

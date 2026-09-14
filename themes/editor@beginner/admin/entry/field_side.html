@@ -1,0 +1,11 @@
+<!--
+  メタ情報カラムの最下部（詳細設定の下）に出るカスタムフィールド。
+
+  親テーマ beginner では field.html から読み込まれていた SEO設定
+  （メイン画像を含む）を、メタ情報カラムへ移している。
+  field-seo.html の実体は beginner 側のものがそのまま使われる。
+
+  ※ field.html からは field-seo.html の読み込みを外してある。
+    両方から読み込むと input の name が重複して保存が壊れる。
+-->
+@include("/admin/entry/field-seo.html")

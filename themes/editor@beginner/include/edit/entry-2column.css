@@ -1,0 +1,681 @@
+@charset "UTF-8";
+
+/* ==============================
+  2カラム編集画面のCSS（子テーマ editor@beginner）
+
+  親テーマの include/edit/custom.css とは別ファイルにしてある。
+  同じ名前にすると子テーマのものだけが読まれ、親テーマの custom.css が
+  まるごと効かなくなるため（テーマの継承はチェーンの先頭が勝つ方式で、
+  同名ファイルはマージされない）。
+
+  読み込みは admin/_layouts/entry/edit.html から行う。
+  親テーマの admin.html には手を入れないので、親を差し替えても
+  このディレクトリをコピーして名前を変えるだけで動く。
+============================== */
+
+/* エントリー編集画面 2カラムレイアウト（試作）
+------------------------------
+  グリッド本体はスタイルガイドの .acms-admin-cssgrid を使い、
+  ここではスタイルガイドで賄えない差分のみを定義する。
+  @see admin/_layouts/entry/edit.html
+  @see https://developer.a-blogcms.jp/document/reference/styleguide/
+
+  ■ カラム幅の考え方
+  本文カラム（ブロックエディター）は「読みやすい行長」を基準にし、
+  幅が足りなくなったら本文・メタ情報の両方が縮んで2カラムを維持する。
+  比率分割ではないので 12カラムの .acms-admin-g-col-* は使わず、
+  グリッドのトラック定義だけをここで上書きしている。
+
+  ■ 算出結果
+  本文の行長     640px（16px × 40字）〜 528px（33字）
+  本文カラム     756px 〜 644px（行長 + エディター余白 116px）
+  メタ情報カラム  384px 〜 280px
+  フォーム最大幅  40 + 756 + 20 + 384 = 1200px
+  2カラム下限    644 + 20 + 280 + wrapper padding 40 = 使える幅 984px
+                 （iPad mini 横向き 1024px → 使える幅 1004px で2カラムになる）*/
+/* フォームの外（バージョン管理バーなど）からも幅を参照できるよう、
+   #main 側にも同じ変数を宣言しておく。
+   ダイレクト編集のモーダルのように #main が無い状況でも効くよう
+   #entryForm 側の宣言も残している。 */
+#main:has(#entryForm),
+#entryForm {
+  /* 本文の行長。和文は1行35〜45字が読みやすいとされるため40字を基準にする。
+     エディター本文は 16px（テーマの body-m = 1rem）なので、
+     全角1字 = 1rem として 40rem = 640px = 40字。
+     ※ #entryForm 自身の font-size は 14px 系なので em ではなく rem を使う */
+  --entry-form-measure: 40rem;
+
+  /* 行長の外側につく余白。
+     ProseMirror の左右 padding 3rem×2 ＋ .acms-unit-content の padding 10px×2 */
+  --entry-form-editor-gutter: calc(6rem + 20px);
+
+  /* 本文カラムの幅（= 行長 + 余白）*/
+  --entry-form-main-width: calc(var(--entry-form-measure) + var(--entry-form-editor-gutter));
+
+  /* 本文カラムの最小行長。ここまでは縮んでも2カラムを維持する。
+     iPad mini（1024×768）の横向きで2カラムにできる値にしてある。
+     1024 - #acms-admin-main の左右 padding 20px = 使える幅 1004px */
+  --entry-form-measure-min: 33rem;
+
+  /* 本文カラムの最小幅（= 最小行長 + 余白）。528 + 116 = 644px */
+  --entry-form-main-min-width: calc(var(--entry-form-measure-min) + var(--entry-form-editor-gutter));
+
+  /* メタ情報カラムの最大幅。本文幅に「追加」される分。
+     .acms-admin-form-width-medium（max-width: 380px）が収まる幅にしてある */
+  --entry-form-side-width: 24rem;
+
+  /* メタ情報カラムの最小幅。幅が足りなくなったらここまで縮む。
+     これ以上縮むと2カラムをやめて1カラムに戻る */
+  --entry-form-side-min-width: 280px;
+
+  /* .entryFormWrapper の左右 padding（md以上で 20px×2）*/
+  --entry-form-wrapper-gutter: 40px;
+
+  /* .acms-admin-cssgrid の既定 gap（1.25rem = 20px）*/
+  --entry-form-column-gap: 1.25rem;
+
+  /* フォーム全体の幅（= 2カラム分）。1200px */
+  --entry-form-width: calc(
+    var(--entry-form-wrapper-gutter) + var(--entry-form-main-width) +
+      var(--entry-form-column-gap) + var(--entry-form-side-width)
+  );
+}
+
+/* フォームの最大幅。2カラム分を収められる幅にする。
+   ※ 変数名は --acms-admin-entry-form-width。
+     SCSS ソース（admin/_edit-page.scss）では --acms-entry-form-width と
+     書かれているが、管理画面向けビルドがカスタムプロパティに acms-admin- を
+     付与するため、実際に効くのは acms-admin- 付きの名前になる。
+     また acms-admin.css が #entryForm 自身に 880px を宣言しているので、
+     継承ではなく #entryForm に直接指定しないと勝てない。 */
+@media (min-width: 768px) {
+  #entryForm {
+    --acms-admin-entry-form-width: var(--entry-form-width);
+  }
+
+  /* フォームの上に並ぶパーツもフォームと同じ幅・中央寄せに揃える。
+     どちらも幅の指定が無く、親いっぱい（フォームより広い）に
+     広がってしまうため。
+     ボタンバーは内側だけ絞る。スクロール時に JS が
+     .acms_fix_bg に背景を付けて固定するので、背景は全幅のまま残す。
+
+     .acms-admin-revison-admin は padding 10px と border 1px を持つので、
+     box-sizing を指定しないと max-width が内容幅に効いて 22px 広くなる
+     （管理画面CSSには全体への box-sizing リセットが無い）。 */
+  #main:has(#entryForm) .acms-admin-revison-admin,
+  #main:has(#entryForm) .acms_fix_bg_index,
+  #main:has(#entryForm) .entryFormTopicpath {
+    box-sizing: border-box;
+    max-width: var(--entry-form-width);
+    margin-inline: auto;
+  }
+}
+
+/* 2カラムの切り替えは、ビューポート幅ではなく「フォームに使える幅」で判定する。
+   この画面(entry-edit)は管理ナビが非表示だが、entry_editor など他の編集画面では
+   管理ナビ(245px)が表示され、同じビューポート幅でも使える幅が大きく変わるため、
+   メディアクエリでは両方に対応できない。
+
+   コンテナを .entryFormBody（.entryFormWrapper の1階層外）に置いているのは
+   2つの理由から。
+   1. コンテナクエリはコンテナ自身を指定できないため、.entryFormWrapper の
+      padding を2カラム時だけ変えるにはコンテナが外側にある必要がある
+   2. 保存バー (.acms-admin-entry-form-sticky-container) を containment の外に
+      残すため。container-type: inline-size は layout containment を伴い、
+      指定した要素がスタッキングコンテキストになる。保存バーは z-index: 100015 で
+      管理ナビ (z-index: 100005) より前に出る必要がある */
+.entryFormBody {
+  container-type: inline-size;
+  container-name: entry-form;
+}
+
+/* 編集画面の上下の余白を詰める。
+   上は既定 20px → 10px。下は保存バーが画面下端に固定されるので不要。
+   他の管理画面に影響しないよう編集画面だけに限定している。
+   ※ ここを変えるとカラムの高さ計算にも効くが、
+     entry-2column.js が実測するので追随する */
+#main:has(#entryForm) {
+  padding-top: 10px;
+  padding-bottom: 0;
+}
+
+/* .entryFormWrapper の下 padding は既定 80px。
+   保存バーと内容が重ならないように空けてあったものだが、
+   保存バーは position: sticky で通常フローにも場所を取るため、
+   最後までスクロールすれば内容は隠れない。上下を揃えて詰める。
+   ※ 2カラム時だけでなく1カラム時にも効かせる必要があるので
+     コンテナクエリの外に置いている */
+.entryFormWrapper {
+  padding-bottom: 13px;
+}
+
+/* 既定は1カラム。.acms-admin-cssgrid の12カラム定義を1本のトラックに差し替え、
+   本文が読みやすい行長を超えないよう絞って中央寄せする。
+   DOM順どおり「メタ情報 → 本文」に縦積みされ、元の1カラムレイアウトと同じ並びになる */
+.entryFormWrapper .entryFormGrid {
+  grid-template-columns: minmax(0, var(--entry-form-main-width));
+  justify-content: center;
+}
+
+/* 2カラム。本文・メタ情報とも minmax で伸縮させる。
+   幅に余裕があれば 756 / 384、足りなくなると両方が縮んで 644 / 280 まで粘る。
+
+   しきい値 984px = 本文の最小 644 + gap 20 + メタ情報の最小 280
+                    + .entryFormWrapper の左右 padding 20px×2。
+   コンテナは .entryFormBody（= フォームそのものの幅）で、
+   .entryFormWrapper の padding はその内側にあるため、必ず足すこと。
+   ※ 条件部に var() は使えないので、上の変数と値を合わせて手で書いている */
+@container entry-form (min-width: 984px) {
+
+  .entryFormWrapper .entryFormGrid {
+    grid-template-columns:
+      minmax(var(--entry-form-main-min-width), var(--entry-form-main-width))
+      minmax(var(--entry-form-side-min-width), var(--entry-form-side-width));
+    justify-content: start;
+  }
+
+  /* DOM順は「メタ情報 → 本文」なので、2カラム時は本文を左・メタ情報を右に明示配置する。
+     order ではなく grid-area にしているのは、どちらがどの位置かを直接読めるようにするため */
+  .entryFormWrapper .entryFormMain {
+    grid-area: 1 / 1;
+  }
+
+  .entryFormWrapper .entryFormSide {
+    grid-area: 1 / 2;
+  }
+
+  /* メタ情報カラムではラベルを値の上に積むのでテーブルレイアウトを使わない。
+     table のままだと th/td を display: block にしてもテーブルボックス自体が
+     セル内容の min-content 幅で広がってしまい、カラム幅（最小280px）を
+     超えてはみ出す。block にして通常のブロックレイアウトに寄せる。 */
+  .entryFormSide table,
+  .entryFormSide tbody,
+  .entryFormSide tr {
+    display: block;
+  }
+
+  /* ラベルを値の上に積む。
+     スタイルガイドの .acms-admin-table-entry が SP 時に行っている
+     縦積み指定を、幅の狭いメタ情報カラム内で再適用する。
+
+     余白は上下も含めて明示する。メタ情報カラムには元の余白が異なる
+     テーブルが混在していて（.entryFormTable は 7px 10px、
+     .acms-admin-table-admin-edit は 2px 5px、メイン画像の .adminTable は無指定）、
+     左右だけ揃えても行間がバラバラになるため。 */
+  .entryFormSide table th,
+  .entryFormSide table td {
+    box-sizing: border-box;
+    display: block;
+    width: 100% !important;
+    padding: 0 !important;
+    text-align: left !important;
+    white-space: normal;
+  }
+
+  /* 行と行の間隔（td の下 7px と合わせて 14px）*/
+  .entryFormSide table th {
+    padding-top: 7px !important;
+  }
+
+  .entryFormSide table td {
+    /* ラベルと入力欄の間隔 */
+    padding-top: 3px !important;
+    padding-bottom: 7px !important;
+  }
+
+  /* .acms-admin-table-admin-edit には枠線が付くが、
+     メタ情報カラムでは縦積みなので枠線は要らない */
+  .entryFormSide table {
+    border: none !important;
+  }
+
+  /* 日付と時刻は横並びにすると収まらないので縦に積む */
+  .entryFormSide .entryFormTable .entryFormDateBlockWrap,
+  .entryFormSide .entryFormTable .entryFormDateBlock {
+    display: block;
+    width: auto;
+    margin-right: 0;
+  }
+
+  /* .acms-admin-form-width-medium（max-width: 380px）は、
+     カラム幅が 280〜384px のメタ情報カラムでは中途半端な幅になるので、
+     2カラムのときはカラム幅いっぱいにする。
+     カテゴリーのほか、ファイル名・リンク先URL・SEOのタイトルも対象。
+     1カラム（756px）では広すぎるので、そちらは既定の 380px 上限のままにする */
+  .entryFormSide .acms-admin-form-width-medium {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* 本文カラムとメタ情報カラムを独立してスクロールさせる。
+
+     グリッドの高さをビューポートから「グリッド以外の高さ」を引いた値にする。
+     この差分（パンくず・見出し・ボタンバー・バージョン情報・保存バー・
+     .entryFormWrapper の上下 padding の合計）は画面の状態によって変わるので、
+     include/edit/entry-2column.js の fitEntryFormColumns() が実測して
+     --entry-form-grid-offset に入れる。下の値は JS が動く前のフォールバック。
+
+     グリッドの高さがページに収まるので、ページ自体はスクロールせず
+     各カラムだけがスクロールする。 */
+  .entryFormWrapper .entryFormGrid {
+    height: calc(100dvh - var(--entry-form-grid-offset, 260px));
+    min-height: 320px;
+  }
+
+  .entryFormMain,
+  .entryFormSide {
+    /* グリッドアイテムの既定の最小サイズ（auto）を外さないと overflow が効かない */
+    min-height: 0;
+    overflow-y: auto;
+
+    /* カラムの端でページ側へスクロールが伝播しないようにする */
+    overscroll-behavior: contain;
+
+    /* スクロールバーの出入りで内容の幅が動かないようにする */
+    scrollbar-gutter: stable;
+  }
+}
+
+/* 入力欄の文字サイズと余白
+------------------------------
+  acms-admin.css の既定は、テキスト入力・textarea が 14px、
+  セレクト（native / リッチセレクト）が 12px。高さもばらついていて、
+  textarea 1行 = 38px、input = 26px、リッチセレクト = 26px。
+
+  タイトルの textarea（padding: 5px 5px 4px / line-height: 1.7）を基準に、
+  他の入力欄もそろえる。textarea 側は既定の余白がそのまま基準になるので
+  文字サイズだけ変えればよい。
+
+  ■ 適用範囲は .entryFormSide（メタ情報カラム）の中だけ
+  #entryForm 全体にかけると、ユニットエディター（#entry-unit-display）の
+  グループユニットのセレクトや、保存バーのバージョン名・バージョン種別まで
+  巻き込んで大きくなってしまう。
+
+  本文カラムのカスタムフィールド（field.html / field_foot.html）も対象外にしている。
+  すぐ隣にユニットエディターが並ぶので、そちらと同じ既定サイズのほうが揃って見えるため。 */
+#entryForm {
+  --entry-form-control-font-size: 16px;
+  --entry-form-control-line-height: 1.7;
+
+  /* 16px × 1.7 ＋ 上 5px ＋ 下 4px ＋ 枠線 2px = 38px（textarea 1行と同じ）*/
+  --entry-form-control-min-height: 38px;
+}
+
+.entryFormSide
+  :is(
+    input[type='text'],
+    input[type='password'],
+    input[type='datetime'],
+    input[type='datetime-local'],
+    input[type='date'],
+    input[type='month'],
+    input[type='time'],
+    input[type='week'],
+    input[type='number'],
+    input[type='email'],
+    input[type='url'],
+    input[type='search'],
+    input[type='tel'],
+    input.acms-admin-form-control
+  ) {
+  min-height: var(--entry-form-control-min-height);
+  padding: 5px 5px 4px;
+  font-size: var(--entry-form-control-font-size);
+  line-height: var(--entry-form-control-line-height);
+}
+
+/* native select は右側に矢印の余白（padding-right: 30px）があるので、
+   上下の余白と高さだけそろえる */
+.entryFormSide select {
+  min-height: var(--entry-form-control-min-height);
+  padding-top: 5px;
+  padding-bottom: 4px;
+  font-size: var(--entry-form-control-font-size);
+  line-height: var(--entry-form-control-line-height);
+}
+
+.entryFormSide
+  :is(textarea, .entryFormLiteEditor) {
+  font-size: var(--entry-form-control-font-size);
+}
+
+/* カテゴリー・サブカテゴリー・タグは react-select（リッチセレクト）。
+   水平パディングは control の padding: 0 5px が固定で入っていて textarea と同じなので、
+   そろえるのは文字サイズ・行送り・高さの3つ。 */
+.entryFormSide .acms-admin-rich-select {
+  --acms-admin-rich-select-font-size: var(--entry-form-control-font-size);
+  --acms-admin-rich-select-line-height: var(--entry-form-control-line-height);
+  --acms-admin-rich-select-height: var(--entry-form-control-min-height);
+}
+
+/* カテゴリーの「追加」ボタンを、隣のセレクトと同じ高さに。
+   .acms-admin-btn-admin は min-height: auto でボタン自身の内容高になるため、
+   38px にしたセレクトと並ぶと背が低く見える。
+   inline-flex かつ align-items: center なので min-height だけで文字は中央に揃う。
+
+   DOM は
+     .acms-admin-category-select-container（flex, gap 4px）
+       ├ .acms-admin-category-select-form-area（flex:1）… セレクト
+       └ #entry-create-category-display … このボタン */
+.entryFormSide .acms-admin-category-select-container .acms-admin-btn-admin {
+  min-height: var(--entry-form-control-min-height);
+}
+
+/* 内容に合わせて高さが伸びる textarea（タイトルで使用）
+------------------------------
+  1行から始まり、文字数が増えると max-height まで行が増える。
+  field-sizing が未対応のブラウザでは高さが min-height で固定されるため、
+  include/edit/entry-2column.js 側で JS フォールバックを用意している。
+
+  max-height は「何行まで見せるか」から逆算する。
+  .acms-admin-form textarea の line-height は 1.7、
+  padding は 5px 5px 4px、枠線は上下 1px ずつ。
+  box-sizing が border-box なので padding と枠線も含めて指定する。 */
+.auto-height {
+  --auto-height-lines: 4;
+
+  field-sizing: content;
+  min-height: 2em;
+  max-height: calc(1.7em * var(--auto-height-lines) + 11px);
+  overflow-y: auto;
+  resize: none !important;
+}
+
+/* 新規作成時にブロックエディターが画面の高さを使うようにする
+------------------------------
+  本文が空だとエディターは最小の高さになり、カラム下部に大きな余白ができる。
+  ProseMirror（入力領域）に最低高さを与えて、初期表示から書き始めやすくする。
+
+  ユニットが2つ以上あるときは中身があるということなので解除する。
+  こうしないとユニットを足すたびに画面の高さぶん積み上がってしまう。
+
+  最低高さは include/edit/entry-2column.js の fitEntryFormColumns() が実測して
+  --entry-form-editor-min-height に入れる。
+  引く量（ユニットのツールバーと余白、ユニット追加ボタン、本文カラム上下の
+  カスタムフィールド）はテーマの内容によって変わるので固定値にできない。
+  下の値は JS が動く前のフォールバック。 */
+#entry-unit-display .acms-admin-block-editor .ProseMirror {
+  /* ProseMirror は上に padding があり、box-sizing を指定しないと
+     min-height がその内側に効いて padding のぶんだけはみ出す */
+  box-sizing: border-box;
+  min-height: var(--entry-form-editor-min-height, 50vh);
+}
+
+#entry-unit-display:has(.acms-admin-unit ~ .acms-admin-unit)
+  .acms-admin-block-editor
+  .ProseMirror {
+  min-height: 0;
+}
+
+/* メイン画像などメディアフィールドのプレビュー
+------------------------------
+  幅はカラムいっぱいに使い、高さだけ上限を設ける。
+
+  既定は max-height: 100%（= 実質無制限）で、テンプレート側の
+  style="width:200px" で抑えていた。それを外して幅を解放する代わりに、
+  ここで高さの上限を決める。
+
+  .acms-admin-media-unit-preview-wrap は inline-block で画像を包むため、
+  画像が上限に当たって縮むと枠も一緒に縮み、余分な余白は出ない。
+  16:9 の画像なら 384px カラムで 320×180、280px カラムでは 280×158。
+
+  メタ情報カラム内だけに限定している。ブロックエディターの画像ユニットも
+  同じ .acms-admin-media-field-preview を使っているため。 */
+/* メタ情報カラムのテーブルはすべてカラム幅いっぱいに。
+   メイン画像の .adminTable にだけ幅の指定が無く、1カラム時に
+   内容幅まで縮んでしまうため（.entryFormTable は width:100%!important、
+   .acms-admin-table-admin-edit は width:100% を持っている）*/
+.entryFormSide table {
+  width: 100%;
+}
+
+.entryFormSide {
+  --entry-form-media-max-height: 180px;
+
+  /* 16:9 の画像が上限高さに当たったときの幅（180 × 16/9 = 320）＋ 枠の padding 8px */
+  --entry-form-media-max-width: 328px;
+}
+
+.entryFormSide .acms-admin-media-field-preview {
+  max-height: var(--entry-form-media-max-height);
+}
+
+/* 未設定時のドロップエリア。固定幅を外したままだと内容幅（約168px）まで
+   縮んでしまうので、設定済みのプレビューと同じくらいの大きさに揃えて、
+   設定前後で見た目が飛ばないようにする */
+.entryFormSide .acms-admin-media-unit-droparea {
+  width: 100%;
+  max-width: var(--entry-form-media-max-width);
+}
+
+/* 親テーマのカスタムフィールドが .js-droparea に固定幅をインラインで
+   持っている場合の打ち消し（beginner の admin/entry/field-seo.html は
+   style="width:200px" を指定している）。
+   親テーマのファイルを子テーマへコピーして直すと、親が更新されたときに
+   追随できなくなるので、ここで上書きする。
+   インラインスタイルが相手なので !important が要る。 */
+.entryFormSide .js-droparea[style*='width'] {
+  width: 100% !important;
+  max-width: var(--entry-form-media-max-width);
+}
+
+/* ユニット追加ボタンの上下の余白を半分にする
+------------------------------
+  .acms-admin-unit-appender の既定は padding: 36px 0。
+  この上下がそれぞれ「最後のユニット→追加ボタン」「追加ボタン→本文カラム下の
+  カスタムフィールド」の間隔になっている。 */
+#entryForm .acms-admin-unit-appender {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+/* ファイル名: 入力欄と「空にする」を横並びにする
+------------------------------
+  入力欄をできるだけ広く取りたいので、チェックボックスは文字数ぶんの幅で固定し、
+  残り幅はすべて入力欄に渡す。
+
+  チェックボックスの幅はアイコン 20px + 右マージン 5px + ラベル「空にする」56px で
+  約81px あり、これ以上は削れない。そのため入力欄が
+  --entry-form-file-name-min-width を下回るときはチェックボックスを次の行へ送り、
+  入力欄にカラム幅いっぱいを使わせる。 */
+.entryFormFileNameStack {
+  --acms-admin-stack-spacing: 8px;
+  --entry-form-file-name-min-width: 220px;
+
+  /* .acms-admin-hstack は nowrap なので折り返せるようにする */
+  flex-wrap: wrap;
+}
+
+.entryFormFileNameStack input[type='text'] {
+  flex: 1 1 var(--entry-form-file-name-min-width);
+  min-width: var(--entry-form-file-name-min-width);
+}
+
+.entryFormFileNameStack .acms-admin-form-checkbox {
+  flex: 0 0 auto;
+}
+
+/* カラムが狭くてもラベルを折り返さない */
+.entryFormFileNameStack .acms-admin-form-checkbox label {
+  white-space: nowrap;
+}
+
+/* 日時: 日付と時刻を横並びにする
+------------------------------
+  .acms-admin-hstack で横並びにし、2つの入力欄が幅を等分するようにする。
+  .entryFormTable の md 以上の指定（.entryFormDateBlock を 150px 固定）と、
+  メタ情報カラム内の縦積み指定を打ち消す必要があるため、
+  セレクタを3段にしてコンテナクエリのブロックより後ろに置いている。 */
+.entryFormTable .entryFormDateTimeStack {
+  --acms-admin-stack-spacing: 8px;
+
+  align-items: start;
+}
+
+.entryFormTable .entryFormDateTimeStack .entryFormDateBlockWrap {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
+.entryFormTable .entryFormDateTimeStack .entryFormDateBlock {
+  display: block;
+  width: auto;
+  margin-right: 0;
+}
+
+/* .acms-admin-form-input-group は display: table なので、
+   幅を指定しないと入力欄が内容幅のままになる */
+.entryFormTable .entryFormDateTimeStack .acms-admin-form-input-group {
+  width: 100%;
+}
+
+/* 開いている詳細設定の矢印を上向きにする。 */
+#entryForm details[open] > summary .acms-admin-icon-arrow-small-down {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+#entryForm details > summary .acms-admin-icon-arrow-small-down {
+  display: inline-block;
+  transition: transform 180ms ease-out;
+}
+#entryForm details[data-closing] > summary .acms-admin-icon-arrow-small-down {
+  transform: rotate(0deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  #entryForm details > summary .acms-admin-icon-arrow-small-down {
+    transition: none;
+  }
+}
+
+/* 複数行のタグと選択欄の枠の間に上下の余白を確保する。 */
+#entry-tag-display [class$="-control"] {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* 段落の場合のみJSが行の高さから補正。見出しは従来の位置を維持する。 */
+#entryForm .acms-admin-block-editor-content-item-menu {
+  transform: translate(-4px, var(--paragraph-handle-offset, 0px));
+}
+
+/* 日本語の本文を読みやすくするため、段落の行間を確保する。 */
+#entryForm .ProseMirror p {
+  line-height: 1.7;
+}
+
+/* 1カラムの基本項目と同じ位置まで、テーブルのセル余白を相殺する。 */
+@media (max-width: 767.98px) {
+  .entryFormMainImage {
+    margin-right: -10px;
+    margin-left: -10px;
+  }
+}
+
+/* 基本項目からメイン画像へ続く境界に、テーブル間の余白を重ねない。 */
+.entryFormSideInner > .entryFormHead:has(+ .entryFormMainImage, + #entry-field_base .entryFormMainImage) > .entryFormTable {
+  margin-bottom: 0 !important;
+}
+.entryFormSideInner > .entryFormHead + .entryFormMainImage,
+.entryFormSideInner > .entryFormHead + #entry-field_base:has(.entryFormMainImage) {
+  margin-top: 0;
+}
+
+/* 横並びでは、通常の入力欄と同じくラベルを上端から約10px下げる。 */
+@media (min-width: 768px) {
+  .entryFormMainImage th {
+    vertical-align: top;
+    padding-top: 18px !important;
+  }
+}
+/* 2カラムの縦積みラベルは、他の基本項目と同じ余白を保つ。 */
+@container entry-form (min-width: 984px) {
+  .entryFormMainImage th {
+    padding-top: 7px !important;
+  }
+}
+
+/* 2カラムの狭いメタ情報欄では、位置情報を1項目ずつ縦に並べる。 */
+.entryFormGeoDetails input[name="geo_lat"],
+.entryFormGeoDetails input[name="geo_lng"],
+.entryFormGeoDetails input[name="geo_zoom"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+/* 位置情報の地図を16:9で表示する。 */
+.entryFormGeoDetails .js-open-street-map-picker {
+  padding-bottom: 56.25%;
+}
+
+.entryFormGeoDetails .js-map_editable-container {
+  aspect-ratio: 16 / 9 !important;
+}
+
+@container entry-form (min-width: 984px) {
+  .entryFormGeoDetails .js-open-street-map-editable,
+  .entryFormGeoDetails .js-map-editable {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+
+  .entryFormGeoDetails .acms-admin-form-group {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  .entryFormGeoDetails input.acms-admin-form-width-mini {
+    width: 100%;
+  }
+}
+
+/* 住所検索は使うときだけ出す
+------------------------------
+  住所で探すのは位置を決める最初の1回だけで、そのあとは地図と緯度経度しか使わない。
+  常時置いておくと縦を取るので、虫眼鏡ボタンを押したときだけ開く。
+
+  開いているかどうかは虫眼鏡側の aria-expanded が持ち、
+  JS はその付け外しだけを行う（include/edit/entry-2column.js）。 */
+.entryFormGeoDetails .acms-admin-form-group:first-child {
+  display: none;
+}
+
+/* 開いているとき。狭い1カラムでも検索ボタンを入力欄の右に並べる */
+.entryFormGeoDetails:has(.js-geo-search-toggle[aria-expanded='true'])
+  .acms-admin-form-group:first-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.entryFormGeoDetails .acms-admin-form-group:first-child input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 「位置情報を削除 / 追加」と虫眼鏡を横に並べる */
+.entryFormGeoActions {
+  --acms-admin-stack-spacing: 6px;
+}
+
+/* 虫眼鏡は地図が出ているときだけ見せる。地図が無いのに住所検索だけあっても使えないため。
+
+   system の admin.js は、地図を出したあと .js-geo-button の data-type を "add"、
+   隠したあと "delete" に書き換える（クリック時に「今の状態」から反転させる作りで、
+   初期表示でも1回実行される）。その結果を状態の判定に使っている。
+   @see js/src/admin.js の dispatchGeoInput() */
+.entryFormGeoDetails .js-geo-search-toggle {
+  display: none;
+}
+
+.entryFormGeoDetails:has(.js-geo-button[data-type='add']) .js-geo-search-toggle {
+  display: inline-flex;
+}
+
+/* 開いている間は押された見た目にする。
+   .acms-admin-btn は background-color に transition を持っているので指定はこれだけでよい */
+.entryFormGeoDetails .js-geo-search-toggle[aria-expanded='true'] {
+  background-color: rgba(0, 0, 0, 0.08);
+}
