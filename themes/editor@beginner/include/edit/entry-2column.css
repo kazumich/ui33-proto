@@ -264,9 +264,32 @@
 
   .entryFormMain,
   .entryFormSide {
+    /* フォーカスリングの逃げ場。
+       管理画面のフォーカスリングは box-shadow: 0 0 0 2px で、
+       要素の外側 2px に描かれる（input / textarea / ボタン / ブロックエディターとも同じ）。
+       1px の余裕を足して 3px にしている。 */
+    --entry-form-focus-gutter: 3px;
+
     /* グリッドアイテムの既定の最小サイズ（auto）を外さないと overflow が効かない */
     min-height: 0;
     overflow-y: auto;
+
+    /* 入力欄のフォーカスリングが左右で切れないようにする。
+
+       overflow-y を visible 以外にすると、CSS の仕様で overflow-x も
+       visible ではなくなる（auto になる）ため、カラムは横方向にも切り抜かれる。
+       入力欄はカラム幅いっぱい（width: 100%）なので、
+       境界の外に出るフォーカスリングが左右で欠けてしまう。
+
+       スクロールコンテナの切り抜きは padding ボックスの端で起きるので、
+       左右に padding を取ればリングの居場所ができる。
+       padding のぶん内容が狭くならないよう、同じ量だけ負のマージンで外へ広げる。
+       内容の幅はトラック幅のまま変わらない。
+
+       はみ出す先はグリッドの gap（20px）と .entryFormWrapper の左右 padding（20px）で、
+       隣のカラムや画面の外にはぶつからない。 */
+    padding-inline: var(--entry-form-focus-gutter);
+    margin-inline: calc(var(--entry-form-focus-gutter) * -1);
 
     /* カラムの端でページ側へスクロールが伝播しないようにする */
     overscroll-behavior: contain;
