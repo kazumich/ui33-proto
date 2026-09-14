@@ -17,9 +17,9 @@
   ■ 変更点
   - .entryFormWrapper の直下に .acms-admin-cssgrid を1枚追加し、
     「メタ情報カラム(.entryFormSide)」と「本文カラム(.entryFormMain)」に分割
-  - メタ情報カラム = ステータス／タイトル／カテゴリー／サブカテゴリー／タグ／日時／
-    会員限定／詳細設定／カスタムフィールド（フィールドの順序は元のまま）
-  - 本文カラム = 位置情報／関連エントリー／ユニットエディター／コンテキスト別フィールド
+  - メタ情報カラム = タイトル／ステータス／カテゴリー／サブカテゴリー／タグ／日時／
+    会員限定／詳細設定／位置情報／カスタムフィールド
+  - 本文カラム = 関連エントリー／ユニットエディター／コンテキスト別フィールド
   - DOM順は「メタ情報 → 本文」。1カラムに戻ったときはこの順に縦積みされ、
     元の1カラムレイアウトと同じ並び（メタ情報が本文の上）になる
   - 2カラム時は grid-area で本文を左・メタ情報を右に明示配置する
@@ -278,33 +278,6 @@
         <div class="entryFormSideInner acms-admin-field-container">
           <div class="entryFormHead">
             <table class="entryFormTable acms-admin-table-entry acms-admin-table-admin-entry">
-              @section("entry-status")
-              <tr id="entry-status-display">
-                <th id="labelStatus">
-                  <label for="entry-status" id="entry-status-label">
-                    <!--T-->ステータス<!--/T-->
-                  </label>
-                </th>
-                <td>
-                  <select id="entry-status" name="status" class="js-entry-status-select">
-                    <option value="draft" {status:selected#draft}><!--T-->下書き<!--/T--></option>
-                    <option value="open" {status:selected#open}><!--T-->公開<!--/T--></option>
-                    <option value="close" {status:selected#close}><!--T-->非公開<!--/T--></option>
-                    <option value="trash" {status:selected#trash}><!--T-->ゴミ箱<!--/T--></option>
-                  </select>
-                  <input type="hidden" name="entry[]" value="status" />
-                  <input type="hidden" name="status:validator#category" id="validator-status-category" />
-                  <div role="alert" aria-live="assertive">
-                    <div data-validator-label="validator-status-category" class="validator-result-{status:validator#category}">
-                      <p class="error-text">
-                        <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
-                        <!--T-->カテゴリーが非公開の記事は公開できません。<!--/T-->
-                      </p>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-              @endsection
               @section("entry-title")
               <tr id="entry-title-display">
                 <th id="labelTitle">
@@ -335,6 +308,33 @@
                       <p class="error-text">
                         <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
                         <!--T-->タイトルは255文字以内で入力してください。<!--/T-->
+                      </p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              @endsection
+              @section("entry-status")
+              <tr id="entry-status-display">
+                <th id="labelStatus">
+                  <label for="entry-status" id="entry-status-label">
+                    <!--T-->ステータス<!--/T-->
+                  </label>
+                </th>
+                <td>
+                  <select id="entry-status" name="status" class="js-entry-status-select">
+                    <option value="draft" {status:selected#draft}><!--T-->下書き<!--/T--></option>
+                    <option value="open" {status:selected#open}><!--T-->公開<!--/T--></option>
+                    <option value="close" {status:selected#close}><!--T-->非公開<!--/T--></option>
+                    <option value="trash" {status:selected#trash}><!--T-->ゴミ箱<!--/T--></option>
+                  </select>
+                  <input type="hidden" name="entry[]" value="status" />
+                  <input type="hidden" name="status:validator#category" id="validator-status-category" />
+                  <div role="alert" aria-live="assertive">
+                    <div data-validator-label="validator-status-category" class="validator-result-{status:validator#category}">
+                      <p class="error-text">
+                        <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
+                        <!--T-->カテゴリーが非公開の記事は公開できません。<!--/T-->
                       </p>
                     </div>
                   </div>
