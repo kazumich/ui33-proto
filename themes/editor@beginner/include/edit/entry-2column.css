@@ -28,9 +28,10 @@
 
   ■ 算出結果
   本文の行長     640px（16px × 40字）〜 528px（33字）
-  本文カラム     756px 〜 644px（行長 + エディター余白 116px）
+  本文カラム     764px（行長 + エディター余白 116px + スクロールバーの余白 8px）
+                 〜 644px（狭いときはスクロールバーの余白を足さない）
   メタ情報カラム  384px 〜 280px
-  フォーム最大幅  40 + 756 + 20 + 384 = 1200px
+  フォーム最大幅  40 + 764 + 20 + 384 = 1208px
   2カラム下限    644 + 20 + 280 + wrapper padding 40 = 使える幅 984px
                  （iPad mini 横向き 1024px → 使える幅 1004px で2カラムになる）*/
 /* フォームの外（バージョン管理バーなど）からも幅を参照できるよう、
@@ -49,15 +50,28 @@
      ProseMirror の左右 padding 3rem×2 ＋ .acms-unit-content の padding 10px×2 */
   --entry-form-editor-gutter: calc(6rem + 20px);
 
-  /* 本文カラムの幅（= 行長 + 余白）*/
-  --entry-form-main-width: calc(var(--entry-form-measure) + var(--entry-form-editor-gutter));
+  /* スクロールバーと内容の間に取る余白。
+     入力欄もブロックエディターもカラム幅いっぱいに広がるので、
+     これが無いとスクロールバーが内容の右端に接する（重なって見える）。
+     カラムの右 padding として使う。 */
+  --entry-form-scrollbar-gutter: 8px;
+
+  /* 本文カラムの幅（= 行長 + エディターの余白 + スクロールバーの余白）。
+     スクロールバーぶんを幅に足しているので、右 padding を入れても行長は40字のまま。 */
+  --entry-form-main-width: calc(
+    var(--entry-form-measure) + var(--entry-form-editor-gutter) +
+      var(--entry-form-scrollbar-gutter)
+  );
 
   /* 本文カラムの最小行長。ここまでは縮んでも2カラムを維持する。
      iPad mini（1024×768）の横向きで2カラムにできる値にしてある。
      1024 - #acms-admin-main の左右 padding 20px = 使える幅 1004px */
   --entry-form-measure-min: 33rem;
 
-  /* 本文カラムの最小幅（= 最小行長 + 余白）。528 + 116 = 644px */
+  /* 本文カラムの最小幅（= 最小行長 + エディターの余白）。528 + 116 = 644px
+     ここにはスクロールバーの余白を足さない。足すと2カラムのしきい値が 992px に上がり、
+     iPad の 1004px に対する余裕が 20px → 12px に減ってしまう。
+     幅が詰まっているときは行長が 33字 → 32.5字 相当になるだけなので、そちらを取る。 */
   --entry-form-main-min-width: calc(var(--entry-form-measure-min) + var(--entry-form-editor-gutter));
 
   /* メタ情報カラムの最大幅。本文幅に「追加」される分。
@@ -74,7 +88,7 @@
   /* .acms-admin-cssgrid の既定 gap（1.25rem = 20px）*/
   --entry-form-column-gap: 1.25rem;
 
-  /* フォーム全体の幅（= 2カラム分）。1200px */
+  /* フォーム全体の幅（= 2カラム分）。1208px */
   --entry-form-width: calc(
     var(--entry-form-wrapper-gutter) + var(--entry-form-main-width) +
       var(--entry-form-column-gap) + var(--entry-form-side-width)
@@ -158,7 +172,7 @@
 }
 
 /* 2カラム。本文・メタ情報とも minmax で伸縮させる。
-   幅に余裕があれば 756 / 384、足りなくなると両方が縮んで 644 / 280 まで粘る。
+   幅に余裕があれば 764 / 384、足りなくなると両方が縮んで 644 / 280 まで粘る。
 
    しきい値 984px = 本文の最小 644 + gap 20 + メタ情報の最小 280
                     + .entryFormWrapper の左右 padding 20px×2。
@@ -298,17 +312,15 @@
     scrollbar-gutter: stable;
   }
 
-  /* スクロールバーと入力欄の間に余白を取る。
-     メタ情報カラムの入力欄はカラム幅いっぱい（width: 100%）なので、
-     何もしないとスクロールバーが入力欄の右端に接してしまう。
+  /* スクロールバーを内容の外に出す。
+     入力欄もブロックエディターもカラム幅いっぱいに広がるので、
+     何もしないとスクロールバーが内容の右端に接する（重なって見える）。
 
-     ※ このぶんメタ情報カラムの内容は狭くなる（384px → 376px）。
-       本文カラムには足していない。本文カラムの幅は「行長40字 + エディターの余白」から
-       逆算した値なので、内側に padding を足すと行長が40字を下回るため。
-       本文カラムはユニットの枠に元から余白があり、接して見えにくい。 */
+     本文カラムは、この余白ぶんをトラック幅にも足してある（764px）ので
+     行長は40字のまま変わらない。
+     メタ情報カラムは行長の縛りが無いため、内容が 384px → 376px に狭くなる。 */
+  .entryFormMain,
   .entryFormSide {
-    --entry-form-scrollbar-gutter: 8px;
-
     padding-right: calc(var(--entry-form-focus-gutter) + var(--entry-form-scrollbar-gutter));
   }
 }
