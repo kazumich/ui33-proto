@@ -327,24 +327,16 @@
   /* ステータスのセレクトの上端を、ブロックエディターの入力欄の上端に合わせる。
      2カラムのときだけ。1カラムでは縦に積むので合わせる相手がいない。
 
-     実測での内訳（本文カラムの先頭から67px、メタ情報カラムの先頭から26px、差が41px）
+     量は固定値にできない。本文カラムの上に入るもの（関連エントリーなど）が
+     新規作成と既存エントリーで違い、エディターの上端の位置が変わるため
+     （実測で 41px の画面と 17px 程度の画面があった）。
+     そこで include/edit/entry-2column.js の updateSideOffset() が実測して
+     --entry-form-side-offset に入れる。
 
-       本文カラム側 67px … 本文カラム上部のカスタムフィールド用コンテナの余白
-                           ＋ ユニットの枠
-                           ＋ ユニットのツールバー 32px
-                             （--acms-admin-unit-toolbar-min-height）
-                           ＋ .acms-admin-unit-content の padding-top 10px
-       メタ情報カラム側 26px … th の padding-top 7px ＋ ラベルの行
-                               ＋ td の padding-top 3px
-
-     ※ この位置合わせが成り立つのは「本文カラムの一番上がユニットのとき」だけ。
-       field.html にフィールドを置くとエディターが下がるので、その場合は
-       この値を見直すか 0 に戻すこと。JS で追いかけないのは、
-       追いかけても意味のある位置にならないため。 */
+     既定は 0。JS が動かなければ、この位置合わせが無いだけの状態になる。
+     ここに固定値を書くと、JS が測り直すまでのあいだ行き過ぎた位置で表示される。 */
   .entryFormSide {
-    --entry-form-side-offset: 41px;
-
-    padding-top: var(--entry-form-side-offset);
+    padding-top: var(--entry-form-side-offset, 0px);
   }
 }
 

@@ -59,6 +59,11 @@ ACMS.Ready(function() {
   // 引く量はパンくず・見出し・ボタンバー・バージョン情報・保存バー・
   // .entryFormWrapper の上下 padding の合計で、画面の状態によって変わるため
   // CSS で決め打ちにせずここで求めて --entry-form-grid-offset に入れる。
+  // メタ情報カラムを押し下げる量の上限。
+  // 本文カラムの上にカスタムフィールドが入るとエディターの上端が下がるので、
+  // 言われたとおりに合わせるとサブカラム全体が大きく下がって不自然になる。
+  const MAX_SIDE_OFFSET = 96;
+
   const fitEntryFormColumns = () => {
     const form = document.getElementById('entryForm');
     const grid = form && form.querySelector('.entryFormGrid');
@@ -171,9 +176,65 @@ ACMS.Ready(function() {
       form.style.setProperty('--entry-form-editor-min-height', `${height}px`);
     };
 
+    // ステータスのセレクトの上端を、ブロックエディターの入力欄の上端に合わせる。
+    //
+    // ずれの量は固定値にできない。本文カラムの上に入るもの（関連エントリーなど）が
+    // 新規作成と既存エントリーで違い、エディターの上端の位置が変わるため。
+    // 実測すると 41px の画面と 17px 程度の画面があった。
+    //
+    // 位置は「それぞれのカラムの先頭からの距離」で比べる。
+    // 画面基準（getBoundingClientRect だけ）で測ると、カラムがスクロールしていると狂う。
+    let appliedSideOffset = null;
+
+    const updateSideOffset = () => {
+      const main = grid.querySelector('.entryFormMain');
+      const side = grid.querySelector('.entryFormSide');
+      const prose = main && main.querySelector('.acms-admin-block-editor .ProseMirror');
+      // 送信用の select は display: none で隠れているので、見えている箱を測る
+      const control = side && side.querySelector('.entryFormStatusSelect');
+
+      if (!prose || !control) {
+        return;
+      }
+
+      // 1カラムのときは縦に積むので、合わせる相手がいない
+      if (!isTwoColumn()) {
+        if (appliedSideOffset !== null) {
+          appliedSideOffset = null;
+          form.style.removeProperty('--entry-form-side-offset');
+        }
+        return;
+      }
+
+      const offsetIn = (column, element) =>
+        element.getBoundingClientRect().top -
+        column.getBoundingClientRect().top +
+        column.scrollTop;
+
+      // いま入っている padding を引いて、素の位置に戻して比べる。
+      // 変数を自分で覚えるのではなく計算値から取るので、CSS 側の既定値が変わっても追随する。
+      const currentOffset = parseFloat(getComputedStyle(side).paddingTop) || 0;
+      const intrinsic = offsetIn(side, control) - currentOffset;
+
+      // 上限を設けている。field.html にフィールドを置くとエディターが下がり、
+      // そのぶんサブカラム全体が押し下げられて不自然になるため。
+      const offset = Math.min(
+        MAX_SIDE_OFFSET,
+        Math.max(0, Math.round(offsetIn(main, prose) - intrinsic))
+      );
+
+      if (offset === appliedSideOffset) {
+        return;
+      }
+
+      appliedSideOffset = offset;
+      form.style.setProperty('--entry-form-side-offset', `${offset}px`);
+    };
+
     const refresh = () => {
       update();
       updateEditor();
+      updateSideOffset();
     };
 
     // イベントの直後はまだ描画が一巡しておらず、実際とは違う値が測れることがある。
