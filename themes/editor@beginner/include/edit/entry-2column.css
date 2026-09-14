@@ -324,19 +324,9 @@
     padding-right: calc(var(--entry-form-focus-gutter) + var(--entry-form-scrollbar-gutter));
   }
 
-  /* ステータスのセレクトの上端を、ブロックエディターの入力欄の上端に合わせる。
-     2カラムのときだけ。1カラムでは縦に積むので合わせる相手がいない。
-
-     量は固定値にできない。本文カラムの上に入るもの（関連エントリーなど）が
-     新規作成と既存エントリーで違い、エディターの上端の位置が変わるため
-     （実測で 41px の画面と 17px 程度の画面があった）。
-     そこで include/edit/entry-2column.js の updateSideOffset() が実測して
-     --entry-form-side-offset に入れる。
-
-     既定は 0。JS が動かなければ、この位置合わせが無いだけの状態になる。
-     ここに固定値を書くと、JS が測り直すまでのあいだ行き過ぎた位置で表示される。 */
+  /* 本文カラムの先頭（ユニットのツールバー）と高さをそろえる */
   .entryFormSide {
-    padding-top: var(--entry-form-side-offset, 0px);
+    padding-top: 5px;
   }
 }
 
