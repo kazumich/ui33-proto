@@ -481,18 +481,16 @@
 
 /* メイン画像などメディアフィールドのプレビュー
 ------------------------------
-  幅はカラムいっぱいに使い、高さだけ上限を設ける。
+  カラム幅いっぱいの 16:9 の枠にする。
+  メイン画像は OGP や一覧のサムネイルに使われるので、実際に表示される
+  比率と同じ枠で確認できたほうがよい。
 
-  既定は max-height: 100%（= 実質無制限）で、テンプレート側の
-  style="width:200px" で抑えていた。それを外して幅を解放する代わりに、
-  ここで高さの上限を決める。
-
-  .acms-admin-media-unit-preview-wrap は inline-block で画像を包むため、
-  画像が上限に当たって縮むと枠も一緒に縮み、余分な余白は出ない。
-  16:9 の画像なら 384px カラムで 320×180、280px カラムでは 280×158。
+  画像あり・なしで同じ大きさの枠になるよう、ドロップエリアとプレビューの
+  両方に aspect-ratio: 16 / 9 を指定している。
+  画像は object-fit: contain なので、16:9 でない画像も切り取らずに収める。
 
   メタ情報カラム内だけに限定している。ブロックエディターの画像ユニットも
-  同じ .acms-admin-media-field-preview を使っているため。 */
+  同じクラスを使っているため。 */
 /* メタ情報カラムのテーブルはすべてカラム幅いっぱいに。
    メイン画像の .adminTable にだけ幅の指定が無く、1カラム時に
    内容幅まで縮んでしまうため（.entryFormTable は width:100%!important、
@@ -502,22 +500,36 @@
 }
 
 .entryFormSide {
-  --entry-form-media-max-height: 180px;
+  --entry-form-media-ratio: 16 / 9;
+}
 
-  /* 16:9 の画像が上限高さに当たったときの幅（180 × 16/9 = 320）＋ 枠の padding 8px */
-  --entry-form-media-max-width: 328px;
+/* 画像を設定したあとの枠。
+   .acms-admin-media-unit-preview-wrap は既定では inline-block で
+   画像の大きさにぴったり縮むため、block にして枠の大きさを固定する。
+   編集・削除ボタンはこの枠を基準に配置されるので、角の位置は変わらない。 */
+.entryFormSide .acms-admin-media-unit-preview-wrap {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--entry-form-media-ratio);
 }
 
 .entryFormSide .acms-admin-media-field-preview {
-  max-height: var(--entry-form-media-max-height);
+  width: 100%;
+  height: 100%;
+  max-height: none;
+
+  /* 16:9 でない画像も切り取らずに収める（余った側は枠の背景色が出る）*/
+  object-fit: contain;
 }
 
-/* 未設定時のドロップエリア。固定幅を外したままだと内容幅（約168px）まで
-   縮んでしまうので、設定済みのプレビューと同じくらいの大きさに揃えて、
-   設定前後で見た目が飛ばないようにする */
+/* 未設定時のドロップエリア。
+   既定の padding: 35px 0 のままだと、カラムが狭いときに中身の高さが
+   16:9 を超えて枠が縦長になるので、上下の余白を詰めておく。 */
 .entryFormSide .acms-admin-media-unit-droparea {
   width: 100%;
-  max-width: var(--entry-form-media-max-width);
+  aspect-ratio: var(--entry-form-media-ratio);
+  padding-block: 12px;
 }
 
 /* 親テーマのカスタムフィールドが .js-droparea に固定幅をインラインで
@@ -528,7 +540,7 @@
    インラインスタイルが相手なので !important が要る。 */
 .entryFormSide .js-droparea[style*='width'] {
   width: 100% !important;
-  max-width: var(--entry-form-media-max-width);
+  max-width: none;
 }
 
 /* ユニット追加ボタンの上下の余白を半分にする
