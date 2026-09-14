@@ -297,6 +297,20 @@
     /* スクロールバーの出入りで内容の幅が動かないようにする */
     scrollbar-gutter: stable;
   }
+
+  /* スクロールバーと入力欄の間に余白を取る。
+     メタ情報カラムの入力欄はカラム幅いっぱい（width: 100%）なので、
+     何もしないとスクロールバーが入力欄の右端に接してしまう。
+
+     ※ このぶんメタ情報カラムの内容は狭くなる（384px → 376px）。
+       本文カラムには足していない。本文カラムの幅は「行長40字 + エディターの余白」から
+       逆算した値なので、内側に padding を足すと行長が40字を下回るため。
+       本文カラムはユニットの枠に元から余白があり、接して見えにくい。 */
+  .entryFormSide {
+    --entry-form-scrollbar-gutter: 8px;
+
+    padding-right: calc(var(--entry-form-focus-gutter) + var(--entry-form-scrollbar-gutter));
+  }
 }
 
 /* 入力欄の文字サイズと余白
