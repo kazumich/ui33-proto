@@ -7,7 +7,7 @@
   - `/bid/1/admin/entry_editor/cid/1/eid/78/` （管理ナビ表示）
   - どちらも `admin/entry/editor.html` 経由で同じレイアウトを使う
 - `themes/system` は未変更
-- 最終更新: 2026-09-12
+- 最終更新: 2026-09-14
 
 > **このリポジトリを読む人へ**
 >
@@ -738,11 +738,10 @@ flatpickr はユーザーエージェントがモバイルだと判定すると�
 > 保存バーやドロップダウンの `z-index` を触るときは、必ず実機で見直すこと。
 
 ---
-
 ## 17. 子テーマ版（`themes/editor@beginner`）
 
-`beginner` テーマに今回の実装を載せるための子テーマ。
-`themes/site` への直接上書きはそのまま残してあるので、両方が併存している。
+**このリポジトリに入っているのはこの版だけ。** 1〜16章の `themes/site` 版は開発環境にのみ存在する。
+以下は 2026-09-14 時点の実装。
 
 詳細は [`themes/editor@beginner/README.md`](../themes/editor@beginner/README.md)。
 
@@ -789,68 +788,119 @@ themes/editor@beginner/
 │       ├── field_base.html           メイン画像をメタ情報カラムへ
 │       ├── field_side.html           SEO設定をメタ情報カラムへ
 │       ├── field_foot.html           空
+│       ├── field_htmx.html
 │       ├── field-main-image.html     メイン画像の中身
-│       └── field-seo.html            SEO設定の中身（メイン画像は含まない）
-└── include/edit/
-    ├── entry-2column.css
-    └── entry-2column.js
+│       ├── field-seo.html            SEO設定の中身（メイン画像は含まない）
+│       └── geo-accordion.html        位置情報をアコーディオンに包んだもの
+├── css/
+│   └── entry-2column.css
+└── js/
+    ├── entry-2column.js
+    └── entry-status-select.js        ステータス用リッチセレクト（ビルド済み。ソースは src/）
 ```
 
 **親テーマのファイルは1つも書き換えていない。** `beginner` が更新されても追随する。
 
-### `themes/site` 版との差分
+> CSS / JS は `include/edit/` ではなく `css/` と `js/` に置いている。
+> 親テーマの `include/edit/custom.css` と同じ場所に置く必要はないため、分かりやすい場所にした。
 
-| | `themes/site` 版 | 子テーマ版 |
-|---|---|---|
-| CSS | `include/edit/custom.css` に追記 | `include/edit/entry-2column.css`（別ファイル） |
-| JS | `include/edit/custom.js` に追記 | `include/edit/entry-2column.js`（別ファイル） |
-| CSS / JS の読み込み | `admin.html` の `editor-css` / `admin-js` セクション | `admin/_layouts/entry/edit.html` の中 |
-| メイン画像 | `admin/entry/field-main-image.html` の固定幅を削除 | CSS で打ち消し（親のファイルを触らない） |
+### 画面の構成
 
-### なぜ `custom.css` / `custom.js` という名前を使わないか
+1〜16章から項目の配置が変わっている。現在はこの並び。
+
+| カラム | 中身 |
+|---|---|
+| **本文（2カラム時は左）** | タイトル → 関連エントリー → `field.html` → ユニットエディター → `field_foot.html` |
+| **メタ情報（2カラム時は右）** | ステータス → カテゴリー → サブカテゴリー → タグ → 日時 → 会員限定 → `field_base.html`（メイン画像）→ 詳細設定 → 位置情報 → `field_side.html`（SEO設定） |
+
+1〜16章からの主な移動は次のとおり。
+
+- **タイトルを本文カラムの先頭へ。** そのページの名前なので、本文と同じ幅で大きく見せる（32px / bold）。
+  ラベルとバリデーションのメッセージは横並びにして縦を詰めている
+- **位置情報をメタ情報カラムへ。** `geo-accordion.html` でアコーディオンに包み、
+  住所検索フォームは虫眼鏡を押したときだけ開く（→ 後述）
+- **メタ情報カラムにはタイトルの雛形（`entry-title2`）がコメントアウトで残っている。**
+  サブ側にもう1つタイトル系の項目を置く検討用。使わないなら消してよい
+
+### 本文幅の切り替え
+
+パンくずの右に 25 / 40 / 70 字の切り替えボタン（`.entryFormMeasureSwitcher`）を置いている。
+押すと `<html>` の `data-entry-editor-measure` が変わり、`--entry-form-measure` を差し替える。
+
+```css
+html[data-entry-editor-measure='25'] #main:has(#entryForm),
+html[data-entry-editor-measure='25'] #entryForm {
+  --entry-form-measure: 25rem;
+  --entry-form-measure-min: 25rem;
+}
+```
+
+- 既定は **40字**（3章の算出根拠どおり）
+- **70字を選ぶと1カラムになる。** `grid-area: auto` と `order` でメタ情報を本文の下へ回す
+- 選択値は `localStorage` に保存し、次に開いたときに復元する。
+  `localStorage` が使えない環境でも、その画面の中では切り替えられる
+- 768px 未満では切り替えUIを隠す
+
+### 1カラム時の並び
+
+1〜16章の版では DOM順どおり「メタ情報 → 本文」に積んでいたが、現在は **`order` で「本文 → メタ情報」** にしている。
+本文を先に書き始められるほうが自然なため。
+
+```css
+.entryFormWrapper .entryFormMain { order: 1; }
+.entryFormWrapper .entryFormSide { order: 2; }
+```
+
+### 画面まわりの調整
+
+| 対象 | 内容 |
+|---|---|
+| フォーカスリング | カラムの `overflow-y: auto` で左右が切れるため、`padding-inline: 3px` ＋同量の負マージンで逃げ場を作る（内容幅は変わらない） |
+| スクロールバー | 内容と重ならないよう右に 8px。本文カラムはトラック幅にも同じ量を足しているので行長は変わらない |
+| タイトル | 32px / bold。最大4行（`--auto-height-lines`）で、`max-height` は `em` 基準なので文字サイズを変えても4行のまま |
+| メイン画像 | カラム幅いっぱいの 16:9。設定前後で枠の大きさが変わらないよう、ドロップエリアとプレビューの両方に `aspect-ratio` を指定。画像は `object-fit: contain` |
+| アコーディオン | 見出しの高さを入力欄と同じ38pxに。開いているときは背景を一段濃くし、下側の角を角ばらせてパネルと地続きに見せる |
+| パンくず | 14px（既定は11px）。`a` にも `font-size` が直接指定されているので `ol` と `a` の両方を指定する |
+| ステータス | `entry-status-select.js` でカテゴリーと同じリッチセレクトに置き換える。JS が読めなければ通常の `select` が残る |
+
+> **アコーディオンをスクロールで見せに行くことはしない。**
+> カラムの下のほうで開くと中身は画面外に伸びるが、押した見出しがカーソルの下から逃げるほうが分かりにくいため、
+> 見出し自身の見た目を変えて知らせる方針にしている。
+
+### 位置情報の住所検索
+
+住所で探すのは位置を決める最初の1回だけなので、常時は隠して虫眼鏡ボタンで開く。
+
+- 状態は虫眼鏡の `aria-expanded` が持ち、表示の切り替えは CSS が行う
+- 虫眼鏡は**地図が出ているときだけ**表示する。`admin.js` が `.js-geo-button` の `data-type` を
+  地図表示後に `add`、非表示後に `delete` へ書き換えるので、それを判定に使う
+
+### 設計上の約束ごと
+
+#### `custom.css` / `custom.js` という名前を使わない
 
 **テーマの継承はチェーンの先頭が勝つ方式で、同名ファイルはマージされない。**
-
 `include/edit/custom.css` を子テーマに置くと、`beginner/include/edit/custom.css` は
 一切読まれなくなる。`custom.js` も同様で、こちらは `beginner` 側にある
 `blockEditorConfig` のクラス名設定が消えて本文のスタイルが当たらなくなる。
 
-そのため別名にしてある。
-
-### なぜ `admin.html` ではなくレイアウトから読み込むか
+#### CSS / JS は `admin.html` ではなくレイアウトから読み込む
 
 子テーマに `admin.html` を置くと、**親の `admin.html` はまるごと置き換わる**。
-親の `editor-css` セクションの中身（`css-variables.css` / `dest/editor.css` / `custom.css`）を
-コピーして持ち回ることになり、親テーマごとにメンテが必要になる。
+親の `editor-css` セクションの中身をコピーして持ち回ることになり、親テーマごとにメンテが必要になる。
 
 代わりに、自分が所有している `admin/_layouts/entry/edit.html` から読み込んでいる。
 
 ```html
-<link rel="stylesheet" href="/include/edit/entry-2column.css">
-<script src="/include/edit/entry-2column.js" charset="UTF-8"></script>
+<link rel="stylesheet" href="/css/entry-2column.css">
+<script src="/js/entry-2column.js" charset="UTF-8"></script>
+<script src="/js/entry-status-select.js" charset="UTF-8"></script>
 ```
 
 `acms.js` は `include/head/admin-js.html` により `<head>` で**同期読み込み**されるので、
 body の途中で `<script>` を置いても `ACMS` は定義済みになっている（`defer` / `async` なし・確認済み）。
 
-> CSS が body 読み込みになるため、初回表示で一瞬ちらつく可能性がある。
-> 気になる場合は `admin.html` を子テーマに置く方式へ切り替えること（上記のメンテ負担と引き換え）。
-
-### メイン画像の固定幅
-
-`beginner/admin/entry/field-seo.html` は `.js-droparea` に `style="width:200px"` を持っている。
-親のファイルを子テーマへコピーして直すと親の更新に追随できなくなるので、CSSで打ち消している。
-
-```css
-.entryFormSide .js-droparea[style*='width'] {
-  width: 100% !important;
-  max-width: var(--entry-form-media-max-width);
-}
-```
-
-インラインスタイルが相手なので `!important` が要る。
-
-### カスタムフィールドの配置
+#### カスタムフィールドの `name` を重複させない
 
 `beginner` は `field.html` から `field-seo.html`（**メイン画像 + SEO設定**）を読み込んでいる。
 子テーマではこれを外し、メイン画像とSEO設定をメタ情報カラムへ分けて置いた。
@@ -863,27 +913,26 @@ body の途中で `<script>` を置いても `ACMS` は定義済みになって�
 | `field_foot.html` | 空 |
 
 **同じフィールドを複数のスロットから読み込むと `input` の `name` が重複して保存が壊れる。**
-チェーンをたどって `name` を集計し、重複が無いことを確認済み。
 
-> **`@include` 先の実体もテーマに要る（2026-09-12 にはまった点）**
+> **`@include` 先の実体もテーマに要る（はまった点）**
 >
 > **見つからない `@include` はエラーにならず、何も出力しない。**
 > スロットのファイルだけ置いて中身のファイルを置き忘れると、
 > 「スロットが効いていない」ように見える。
->
-> 実際、`field_base.html`（`@include("/admin/entry/field-main-image.html")` の1行）を
-> 置いただけでメイン画像が出ず、原因は `field-main-image.html` が
-> `editor@beginner` にも `beginner` にも `system` にも無かったこと。
->
-> なお `beginner` の `field-seo.html` はメイン画像入りの別物なので、
-> SEO設定側も実体を子テーマに置いてある。
+
+### キャッシュに注意
+
+`web/.htaccess` が **`.css` / `.js` すべてに 1年・`immutable` のキャッシュ**を付けている。
+
+```
+Header set Cache-Control "public, max-age=31536000, immutable"
+```
+
+`immutable` は「再検証するな」という指示なので、**通常のリロードでは新しいファイルを取りに行かない**。
+テーマのCSS / JSを編集して確認するときは、DevTools の Network タブで
+「Disable cache」をONにすること。
 
 ### 未検証
 
-**子テーマ版は実機で未確認。** `themes/site` 版と同じCSS / JSであることは
-セレクタ単位で突き合わせて確認済み（差分は `.js-droparea` の打ち消し1本のみ）だが、
-以下は実際にテーマを切り替えて確認する必要がある。
-
-- body 読み込みにした CSS / JS が意図どおり効くか（特に初回表示のちらつき）
-- `field-seo.html` がメタ情報カラムで崩れないか（`beginner` のものは `<details>` で包まれている）
-- 保存が通るか（`name` の重複が無いこと）
+- 実機の iPad / タブレットでの表示（ブラウザのレスポンシブモード 1024×768 では確認済み）
+- `ResizeObserver` の発火（→ 14章）
