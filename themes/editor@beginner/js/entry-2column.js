@@ -575,3 +575,91 @@ ACMS.Ready(function () {
     update();
   });
 });
+
+// 行き場のないホイール操作を本文カラムへ送る。
+//
+// 2カラムのときはページ自体の高さを固定していてスクロールしないので、
+// 左右の余白やメタ情報カラムの余った部分でホイールを回しても何も起きない。
+// 「どこで回してもページが動く」という普通の期待から外れるため、
+// どこも受け取らなかったホイールだけを本文カラムに流す。
+//
+// カーソルの下にスクロールできる領域がある場合は、そちらに任せて何もしない。
+// このとき「端まで行ったから代わりに本文を動かす」ことはしない。
+// カラムには overscroll-behavior: contain を指定していて、
+// 端に着いたらそこで止まる（隣へ伝播させない）方針にそろえるため。
+//
+// 1カラムのときはページ全体がスクロールするので対象外。
+ACMS.Ready(function () {
+  const form = document.getElementById('entryForm');
+  const grid = form && form.querySelector('.entryFormGrid');
+
+  if (!grid) {
+    return;
+  }
+
+  // フォームの左右の余白はフォームの外側にあるので、1つ上の #main で受ける
+  const scope = form.closest('#main') || document;
+
+  // スクロールする余地を持った領域か（今その向きへ動けるかどうかは見ない）
+  const isScrollable = (el) => {
+    if (!(el instanceof Element)) {
+      return false;
+    }
+
+    const overflowY = getComputedStyle(el).overflowY;
+
+    if (overflowY !== 'auto' && overflowY !== 'scroll') {
+      return false;
+    }
+
+    return el.scrollHeight > el.clientHeight;
+  };
+
+  // その向きへまだ動かせるか
+  const canScroll = (el, delta) =>
+    isScrollable(el) &&
+    (delta < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+
+  scope.addEventListener(
+    'wheel',
+    (event) => {
+      if (getComputedStyle(grid).gridTemplateColumns.split(' ').length < 2) {
+        return;
+      }
+
+      const main = grid.querySelector('.entryFormMain');
+
+      if (!main) {
+        return;
+      }
+
+      // ホイールの単位は環境で変わる。行・ページ指定のときは px に直す
+      let delta = event.deltaY;
+
+      if (event.deltaMode === 1) {
+        delta *= 16;
+      } else if (event.deltaMode === 2) {
+        delta *= main.clientHeight;
+      }
+
+      // カーソルの下にスクロールできる領域があるなら、そちらに任せる。
+      // 端に着いていても、そこで止まるのが正しいので横取りしない
+      let el = event.target;
+
+      while (el && el !== scope) {
+        if (isScrollable(el)) {
+          return;
+        }
+        el = el.parentElement;
+      }
+
+      if (!canScroll(main, delta)) {
+        return;
+      }
+
+      main.scrollTop += delta;
+      event.preventDefault();
+    },
+    { passive: false }
+  );
+});
