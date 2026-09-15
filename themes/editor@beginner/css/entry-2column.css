@@ -163,6 +163,33 @@
   margin: 0;
 }
 
+/* パンくずは1行に収め、はみ出たぶんは横に送って読む。
+   エントリー名が長いと2行になり、その下の入力欄の位置まで動いて落ち着かないため。
+
+   li は管理画面CSS で float: left なので、そのままでは折り返る。
+   ol を flex にすると li は flex item になり float は効かなくなる。 */
+.entryFormTopicpath .acms-admin-topicpath {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+
+  /* 端まで送ったときにページごと動かないようにする（スマホのスワイプバック対策） */
+  overscroll-behavior-x: contain;
+
+  /* 横バーが出ると1行ぶん高さが増えて落ち着かないので隠す。
+     指でもホイールでも送れるし、現在地はすぐ下のタイトル欄にも出ている */
+  scrollbar-width: none;
+}
+
+.entryFormTopicpath .acms-admin-topicpath::-webkit-scrollbar {
+  display: none;
+}
+
+.entryFormTopicpath .acms-admin-topicpath li {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .entryFormMeasureSwitcher {
   display: inline-flex;
   align-items: stretch;
@@ -659,10 +686,15 @@ html[data-entry-editor-measure='70'] #entryForm {
   中身を JS で作るので、出来たものから順に現れてバラバラと組み上がって見える。
   組み上がる間はグレーで覆っておき、出揃ってから一枚で見せる。
 
-  ■ 覆う範囲は .entryFormMainBody
-  カスタムフィールド（field.html / field_foot.html）とユニットエディターだけを囲んだ箱。
-  タイトル・関連エントリー・メタ情報カラムは最初から出ているので覆わない。
+  ■ 覆う範囲はカラム数で変える
+  2カラムのときは .entryFormMainBody だけ。
+  カスタムフィールド（field.html / field_foot.html）とユニットエディターを囲んだ箱で、
+  タイトル・関連エントリー・メタ情報カラムは覆わない。
   用意できているところは見えていたほうがよいため。
+
+  1カラム（スマホ）のときは .entryFormGrid ごと覆う。
+  メタ情報が本文の真下に並ぶので、覆いの外に置くと
+  ステータスが素のセレクトからリッチセレクトに差し替わる様子まで見えてしまう。
 
   ■ 覆いは JS が付けたときだけ出る
   #entryForm に data-editor-loading が付いている間だけ ::before を描く。
@@ -677,6 +709,13 @@ html[data-entry-editor-measure='70'] #entryForm {
   --entry-form-reveal-duration: 450ms;
 }
 
+/* 覆いの基準。.entryFormGrid は元からある要素なので、
+   中の絶対配置の基準を変えてしまわないよう、覆っている間だけ relative にする */
+#entryForm[data-editor-loading] .entryFormGrid {
+  position: relative;
+}
+
+#entryForm[data-editor-loading] .entryFormGrid::before,
 #entryForm[data-editor-loading] .entryFormMainBody::before {
   position: absolute;
 
@@ -694,7 +733,26 @@ html[data-entry-editor-measure='70'] #entryForm {
   transition: opacity var(--entry-form-reveal-duration, 450ms) ease-out;
 }
 
+/* 1カラムではメタ情報が本文の真下に来るので、フォーム全体をまとめて覆う。
+   ステータスのセレクトもリッチセレクトに差し替わるまで素の見た目で、
+   そこだけ覆いの外だと組み上がる様子が丸見えになる。 */
+#entryForm[data-editor-loading] .entryFormMainBody::before {
+  content: none;
+}
+
+/* 2カラムではメタ情報は右に並ぶ。本文だけ覆い、用意できているところは見せる */
+@container entry-form (min-width: 984px) {
+  #entryForm[data-editor-loading] .entryFormGrid::before {
+    content: none;
+  }
+
+  #entryForm[data-editor-loading] .entryFormMainBody::before {
+    content: '';
+  }
+}
+
 /* 用意ができた合図。ここで初めてフワッと消える */
+#entryForm[data-editor-loading='ready'] .entryFormGrid::before,
 #entryForm[data-editor-loading='ready'] .entryFormMainBody::before {
   opacity: 0;
 }
@@ -705,6 +763,7 @@ html[data-entry-editor-measure='70'] #entryForm {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #entryForm[data-editor-loading] .entryFormGrid::before,
   #entryForm[data-editor-loading] .entryFormMainBody::before {
     transition: none;
   }
