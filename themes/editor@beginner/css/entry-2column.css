@@ -653,6 +653,63 @@ html[data-entry-editor-measure='70'] #entryForm {
   min-height: 0;
 }
 
+/* 読み込み中はフォームをグレーで覆い、用意ができたらフワッと見せる
+------------------------------
+  <acms-unit-editor> もカスタムフィールド（メディア・日付・リッチセレクトなど）も
+  中身を JS で作るので、出来たものから順に現れてバラバラと組み上がって見える。
+  組み上がる間はグレーで覆っておき、出揃ってから一枚で見せる。
+
+  ■ 覆う範囲は .entryFormMainBody
+  カスタムフィールド（field.html / field_foot.html）とユニットエディターだけを囲んだ箱。
+  タイトル・関連エントリー・メタ情報カラムは最初から出ているので覆わない。
+  用意できているところは見えていたほうがよいため。
+
+  ■ 覆いは JS が付けたときだけ出る
+  #entryForm に data-editor-loading が付いている間だけ ::before を描く。
+  JS が動かなければ覆いは出ず、いつもどおり表示されるだけになる。
+  「覆ったまま編集できない」が起きない向きにそろえてある。
+  外す条件は js/entry-2column.js を参照（読み込み完了・ユニット生成・時間切れ）。 */
+.entryFormMainBody {
+  position: relative;
+
+  /* 覆いが消えるまでの長さ。見え方を確かめたいときはここを長くする。
+     js/entry-2column.js は、この長さより後に属性ごと外す */
+  --entry-form-reveal-duration: 450ms;
+}
+
+#entryForm[data-editor-loading] .entryFormMainBody::before {
+  position: absolute;
+
+  /* 箱より少し外まで覆う。
+     ユニットの本体（.acms-admin-unit-content）が box-shadow: 0 1px 4px を持っていて、
+     影は箱の外側に出るため、inset: 0 だと右端などに細い影が残って見える */
+  inset: -6px;
+  z-index: 2;
+  content: '';
+  background: #f2f2f5;
+  border-radius: 8px;
+
+  /* 消えたあとも残るが、操作の邪魔はしない */
+  pointer-events: none;
+  transition: opacity var(--entry-form-reveal-duration, 450ms) ease-out;
+}
+
+/* 用意ができた合図。ここで初めてフワッと消える */
+#entryForm[data-editor-loading='ready'] .entryFormMainBody::before {
+  opacity: 0;
+}
+
+/* 覆っている間は本文の場所も確保して、外したときに下の要素が飛ばないようにする */
+#entryForm[data-editor-loading]:not([data-editor-loading='ready']) #entry-unit-display {
+  min-height: var(--entry-form-editor-min-height, 50vh);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #entryForm[data-editor-loading] .entryFormMainBody::before {
+    transition: none;
+  }
+}
+
 /* メイン画像などメディアフィールドのプレビュー
 ------------------------------
   カラム幅いっぱいの 16:9 の枠にする。

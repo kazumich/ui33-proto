@@ -753,35 +753,69 @@
           </div>
         </div>
 
-        <!-- カスタムフィールド挿入位置: 本文カラムの上部（ユニットエディターの上）-->
-        <div class="acms-admin-field-container">
-          @section("entry-field")
-          <div id="entry-field">
-          @include("/admin/entry/field.html")
-          </div>
-          @endsection
-          <!-- BEGIN_MODULE Admin_InjectTemplate id="admin-entry-field" --><!-- END_MODULE Admin_InjectTemplate -->
-        </div>
+        <!-- 読み込み中にグレーで覆う範囲。
+             カスタムフィールドもユニットエディターも中身を JS で作るので、
+             出来たものから順に現れてバラバラと組み上がって見える。
+             ここをまとめて覆い、出揃ってから一枚で見せる。
+             タイトルや関連エントリー、メタ情報カラムは最初から出ているので覆わない。
+             @see css/entry-2column.css の #entryForm[data-editor-loading] -->
+        <script>
+          // 読み込み中の覆いを、この下の中身が描かれる前に出す。
+          // field.html / field_foot.html はサーバー側で描かれた素のHTMLなので、
+          // ACMS.Ready を待ってから覆うと中身が一瞬見えてしまう。
+          //
+          // 覆いを外すのは js/entry-2column.js（読み込み完了・ユニット生成・時間切れ）。
+          // 万一そちらが読み込まれなかった場合に覆ったままにならないよう、ここにも保険を置く。
+          // 向こうは動き出した時点で data-editor-boot を立てるので、それが無ければ自分で外す。
+          // 「まだフェード中か」を時間で測ると向こうの待ち時間と競合するため、この判定にしている。
+          (function () {
+            var form = document.currentScript.closest('form');
 
-        <div class="js-hide-on-modal" id="entry-unit-display">
-          @section("entry-unit")
-          <template id="unit-html-repository">
-            @include("/admin/entry/unit.html")
-          </template>
-          <acms-unit-editor
-            default-value="{json}[escvars]"
-            <!-- BEGIN_MODULE Admin_Unit_EditorSettings -->
-            settings="{json}[escvars]"
-            <!-- END_MODULE Admin_Unit_EditorSettings -->
-          ></acms-unit-editor>
-          @endsection
-        </div>
+            if (!form) {
+              return;
+            }
 
-        <div class="acms-admin-field-container">
-          <div id="entry-field_foot">
-          @include("/admin/entry/field_foot.html")
+            form.dataset.editorLoading = '';
+
+            window.setTimeout(function () {
+              if (form.dataset.editorBoot === undefined) {
+                form.removeAttribute('data-editor-loading');
+              }
+            }, 5000);
+          })();
+        </script>
+
+        <div class="entryFormMainBody">
+          <!-- カスタムフィールド挿入位置: 本文カラムの上部（ユニットエディターの上）-->
+          <div class="acms-admin-field-container">
+            @section("entry-field")
+            <div id="entry-field">
+            @include("/admin/entry/field.html")
+            </div>
+            @endsection
+            <!-- BEGIN_MODULE Admin_InjectTemplate id="admin-entry-field" --><!-- END_MODULE Admin_InjectTemplate -->
           </div>
-          <!-- BEGIN_MODULE Admin_InjectTemplate id="admin-entry-field-foot" --><!-- END_MODULE Admin_InjectTemplate -->
+
+          <div class="js-hide-on-modal" id="entry-unit-display">
+            @section("entry-unit")
+            <template id="unit-html-repository">
+              @include("/admin/entry/unit.html")
+            </template>
+            <acms-unit-editor
+              default-value="{json}[escvars]"
+              <!-- BEGIN_MODULE Admin_Unit_EditorSettings -->
+              settings="{json}[escvars]"
+              <!-- END_MODULE Admin_Unit_EditorSettings -->
+            ></acms-unit-editor>
+            @endsection
+          </div>
+
+          <div class="acms-admin-field-container">
+            <div id="entry-field_foot">
+            @include("/admin/entry/field_foot.html")
+            </div>
+            <!-- BEGIN_MODULE Admin_InjectTemplate id="admin-entry-field-foot" --><!-- END_MODULE Admin_InjectTemplate -->
+          </div>
         </div>
       </div>
 

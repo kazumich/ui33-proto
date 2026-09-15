@@ -663,3 +663,102 @@ ACMS.Ready(function () {
     { passive: false }
   );
 });
+
+// 読み込み中、フォームをグレーで覆う。
+//
+// data-editor-loading を #entryForm に付けている間だけ CSS が覆いを描く
+// （css/entry-2column.css）。覆う範囲は本文カラムとメタ情報カラムの両方で、
+// ユニットエディターの外にあるカスタムフィールドも隠れる。
+//
+// この JS が動かなければ覆いは出ず、いつもどおり表示されるだけになる。
+// 「覆ったまま編集できない」が起きない向きにそろえてある。
+//
+// 外すのは次のどれかが揃ったとき。
+//   1. ページの読み込み完了（load）、ユニットエディターの生成完了、
+//      そこで現れた画像の読み込み完了の3つ
+//   2. どれかが来なくても、時間切れ（安全側）
+ACMS.Ready(function () {
+  const form = document.getElementById('entryForm');
+
+  if (!form || !form.querySelector('.entryFormGrid')) {
+    return;
+  }
+
+  // 覆いは admin/_layouts/entry/edit.html のインラインスクリプトが先に付けている
+  // （そうしないと field.html / field_foot.html が一瞬見えてしまう）。
+  // ここで付け直すのは、そのインラインが無いテーマでも動くようにするため。
+  form.dataset.editorLoading = '';
+
+  // インライン側の保険に「こちらが動いている」と知らせる目印。
+  // これが無いと向こうが 5 秒で覆いを外してしまう
+  form.dataset.editorBoot = '1';
+
+  let done = false;
+
+  const reveal = () => {
+    if (done) {
+      return;
+    }
+    done = true;
+
+    // 値を 'ready' に変えると CSS 側でフェードが始まる。
+    // ここで属性を消すと覆いごと即座に消えてフェードにならないので、まだ残す
+    form.dataset.editorLoading = 'ready';
+
+    // フェードが終わったら属性ごと外す。
+    // 覆いはもう透明なので見た目は変わらず、確保していた高さだけが解放される。
+    // CSS 側の --entry-form-reveal-duration（450ms）より長くしておく
+    window.setTimeout(() => {
+      form.removeAttribute('data-editor-loading');
+    }, 600);
+  };
+
+  // ページの読み込み完了
+  const loaded = document.readyState === 'complete'
+    ? Promise.resolve()
+    : new Promise((resolve) => window.addEventListener('load', resolve, { once: true }));
+
+  // ユニットエディターの生成完了。イベントが無い環境では待たない
+  const editorReady = window.ACMS && ACMS.events && ACMS.events.on
+    ? new Promise((resolve) => ACMS.events.on('unit-editor.create.after', resolve))
+    : Promise.resolve();
+
+  // 覆いの中の画像。ユニットの画像はエディターが組み上がってから DOM に入るので、
+  // window.load では間に合わない。読み込み前の <img> は高さを持たないため、
+  // 待たずに覆いを外すと、あとから高さが入ってガクッと動く
+  const imagesReady = () => {
+    const body = form.querySelector('.entryFormMainBody') || form;
+    const pending = Array.from(body.querySelectorAll('img'))
+      .filter((img) => !img.complete)
+      .map((img) => new Promise((resolve) => {
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      }));
+
+    return Promise.all(pending);
+  };
+
+  // 描画が一巡するのを待つ
+  const nextPaint = () => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  // 高さが決まってから見せるまでの間。
+  // 何かが一拍遅れて入ってきても覆いの内側で済むよう、少し置いている
+  const SETTLE_DELAY = 500;
+
+  Promise.all([loaded, editorReady])
+    // 直後はまだ中身が動いていることがあるので、一巡してから画像を数える
+    .then(nextPaint)
+    .then(imagesReady)
+    // 画像が入って高さが決まるのを見届ける
+    .then(nextPaint)
+    .then(() => {
+      window.setTimeout(reveal, SETTLE_DELAY);
+    });
+
+  // 合図が来なくても、これ以上は待たせない。
+  // 画像待ちがここに引っかかると覆いを外したあとに動いてしまうので、
+  // SETTLE_DELAY の分だけ余裕を持たせてある
+  window.setTimeout(reveal, 5000 + SETTLE_DELAY);
+});
