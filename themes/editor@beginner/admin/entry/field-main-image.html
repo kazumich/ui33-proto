@@ -4,11 +4,32 @@
       <tr id="seo-entry_main_image">
         <th>メイン画像</th>
         <td class="js-media-field seo-entry_main_image-droparea">
-          <!-- 幅はカラムいっぱい。高さの上限は include/edit/custom.css で指定している -->
+          <!-- 幅・高さと枠線は css/entry-2column.css で指定している -->
           <div class="js-droparea" data-thumbnail="{entry_main_image@thumbnail}" data-type="image"></div>
           <p class="js-text acms-admin-text-danger" style="display:none">許可されていないファイルのため挿入できません。</p>
-          <div class="acms-admin-margin-top-mini">
-            <button type="button" class="js-insert acms-admin-btn" data-type="image">メディアを選択</button>
+          <div class="entryFormMainImageActions acms-admin-margin-top-mini">
+            <button type="button" class="js-insert acms-admin-btn" data-type="image">メディアから選択</button>
+            <span class="js-entry-main-image-media-id acms-admin-label acms-admin-label-default acms-admin-margin-right-mini" hidden></span>
+            <button
+              type="button"
+              class="js-edit js-acms-tooltip-hover acms-admin-unit-toolbar-button"
+              style="display:none"
+              hidden
+              aria-label="メイン画像を編集する"
+              data-acms-tooltip="メイン画像を編集する"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+            </button>
+            <button
+              type="button"
+              class="js-remove js-acms-tooltip-hover acms-admin-unit-toolbar-button"
+              style="display:none"
+              hidden
+              aria-label="メイン画像の設定を解除する"
+              data-acms-tooltip="メイン画像の設定を解除する"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+            </button>
           </div>
           <input type="hidden" name="entry_main_image" value="{entry_main_image}" class="js-value js-block-editor-set-main-image" />
           <input type="hidden" name="field[]" value="entry_main_image" />

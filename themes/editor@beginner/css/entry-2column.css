@@ -679,22 +679,41 @@ html[data-entry-editor-measure='70'] #entryForm {
 
 /* 画像を設定したあとの枠。
    .acms-admin-media-unit-preview-wrap は既定では inline-block で
-   画像の大きさにぴったり縮むため、block にして枠の大きさを固定する。
+   画像の大きさにぴったり縮むため、block にしてカラム幅へ広げる。
+   16:9 は画像側に指定し、その外側へ既定の padding: 4px を置くことで、
+   枠と画像の間隔を四辺とも同じにする。線では囲わず、余白を詳細設定と
+   同じグレーで塗って画像の範囲を示す。
    編集・削除ボタンはこの枠を基準に配置されるので、角の位置は変わらない。 */
 .entryFormSide .acms-admin-media-unit-preview-wrap {
   box-sizing: border-box;
   display: block;
   width: 100%;
-  aspect-ratio: var(--entry-form-media-ratio);
+  background-color: #e2e2e8;
 }
 
 .entryFormSide .acms-admin-media-field-preview {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
   max-height: none;
+  aspect-ratio: var(--entry-form-media-ratio);
 
   /* 16:9 でない画像も切り取らずに収める（余った側は枠の背景色が出る）*/
   object-fit: contain;
+}
+
+.entryFormMainImageActions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.entryFormMainImageActions .js-entry-main-image-media-id {
+  margin-left: 4px;
+}
+
+.entryFormMainImageActions [hidden] {
+  display: none !important;
 }
 
 /* 未設定時のドロップエリア。
@@ -704,6 +723,7 @@ html[data-entry-editor-measure='70'] #entryForm {
   width: 100%;
   aspect-ratio: var(--entry-form-media-ratio);
   padding-block: 12px;
+  border-color: #c2c2ce;
 }
 
 /* 親テーマのカスタムフィールドが .js-droparea に固定幅をインラインで

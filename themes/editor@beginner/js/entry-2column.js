@@ -547,3 +547,31 @@ ACMS.Ready(function () {
 
   applyMeasure(measure, false);
 });
+
+// メイン画像が設定されているときだけ、操作ボタンの横へ現在のメディアIDを表示する。
+// メディアフィールド標準の変更イベントを使うため、選択・変更・解除の直後に追従する。
+ACMS.Ready(function () {
+  document.querySelectorAll('.entryFormMainImage .js-media-field').forEach((field) => {
+    const input = field.querySelector('.js-value');
+    const label = field.querySelector('.js-entry-main-image-media-id');
+    const mediaActionButtons = field.querySelectorAll('.js-edit, .js-remove');
+
+    if (!input || !label) {
+      return;
+    }
+
+    const update = () => {
+      const mediaId = input.value.trim();
+      const selected = mediaId !== '' && mediaId !== '0';
+
+      label.textContent = selected ? mediaId : '';
+      label.hidden = !selected;
+      mediaActionButtons.forEach((button) => {
+        button.hidden = !selected;
+      });
+    };
+
+    input.addEventListener('acms.media-field.change', update);
+    update();
+  });
+});
