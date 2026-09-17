@@ -93,9 +93,60 @@ ACMS.Ready(function() {
       return chrome;
     };
 
-    // 2カラムかどうか。グリッドのトラックが2本あるかで判定する
-    const isTwoColumn = () =>
-      getComputedStyle(grid).gridTemplateColumns.split(' ').length >= 2;
+    // 2カラムにできる幅かを判定して html[data-entry-columns] に入れる。
+    //
+    // 必要な幅は本文の行長モード（25/40/70字）で変わる。
+    // CSS 側は --entry-form-two-column-min がモードに連動して持っているので、
+    // ここではその値を実測してコンテナ幅と比べるだけにしている。
+    // コンテナクエリでやらないのは、条件部に var() を書けず、
+    // モードごとにしきい値を並べると2カラムの指定をまるごと複製することになるため。
+    const formBody = form.querySelector('.entryFormBody');
+
+    // 変数は長さの文字列（calc のまま）で返るので、幅として当てて実測する
+    const threshold = document.createElement('div');
+    threshold.style.cssText =
+      'position:absolute;visibility:hidden;height:0;pointer-events:none;';
+    threshold.style.width = 'var(--entry-form-two-column-min)';
+
+    // 「使える幅」はフォームの外側で測る。
+    // #entryForm 自身には max-width（--entry-form-width）が効いていて、
+    // その値はカラム数によって変わる。フォームの内側で測ると
+    // 「1カラムだから狭い → 狭いから1カラム」と決め打ちになって切り替わらない。
+    const available = () => {
+      const parent = form.parentElement;
+
+      if (!parent) {
+        return formBody ? formBody.clientWidth : 0;
+      }
+
+      const style = getComputedStyle(parent);
+
+      return (
+        parent.clientWidth -
+        (parseFloat(style.paddingLeft) || 0) -
+        (parseFloat(style.paddingRight) || 0)
+      );
+    };
+
+    const updateColumns = () => {
+      if (!formBody) {
+        return;
+      }
+
+      formBody.appendChild(threshold);
+      const need = threshold.getBoundingClientRect().width;
+      threshold.remove();
+
+      // 書き込むとレイアウトが変わって ResizeObserver が再発火するので、
+      // 変わったときだけ書き込んでループを止める
+      const next = available() >= need ? '2' : '1';
+
+      if (document.documentElement.dataset.entryColumns !== next) {
+        document.documentElement.dataset.entryColumns = next;
+      }
+    };
+
+    const isTwoColumn = () => document.documentElement.dataset.entryColumns === '2';
 
     const update = () => {
       // 1カラムのときはページ全体がスクロールするので高さを固定しない
@@ -172,6 +223,8 @@ ACMS.Ready(function() {
     };
 
     const refresh = () => {
+      // カラム数が先。下の2つは2カラムかどうかで測り方を変える
+      updateColumns();
       update();
       updateEditor();
     };
@@ -761,4 +814,104 @@ ACMS.Ready(function () {
   // 画像待ちがここに引っかかると覆いを外したあとに動いてしまうので、
   // SETTLE_DELAY の分だけ余裕を持たせてある
   window.setTimeout(reveal, 5000 + SETTLE_DELAY);
+});
+
+// ⌘+S（Mac）／ Ctrl+S（Windows）で保存する
+// ------------------------------
+// 編集画面でブラウザ標準の「ページを保存」を出しても使い道がないので、
+// そちらは止めて保存ボタンを押したことにする。
+//
+// 保存ボタンは新規が「作成」、更新が「保存」で、どちらも
+// .acms-admin-btn-admin-save が付いている。
+// 承認バージョンの分岐でマークアップ上は複数書かれているが、出るのは1つ。
+ACMS.Ready(function () {
+  const form = document.getElementById('entryForm');
+
+  if (!form) {
+    return;
+  }
+
+  // 今そこにあって押せるものだけを対象にする。
+  // 保存ボタンは変更が無いと disabled のままなので、そのときは何も起きない。
+  const findSaveButton = () =>
+    Array.from(form.querySelectorAll('.acms-admin-btn-admin-save')).find(
+      (button) => !button.disabled && button.getClientRects().length > 0
+    );
+
+  document.addEventListener('keydown', (event) => {
+    // ⌘/Ctrl 単独の S だけ。⇧ や ⌥ との組み合わせは別の操作に譲る
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+      return;
+    }
+
+    if (event.key.toLowerCase() !== 's') {
+      return;
+    }
+
+    // 日本語入力の変換中と、押しっぱなしの連射は拾わない
+    if (event.isComposing || event.repeat) {
+      return;
+    }
+
+    // 押せる保存ボタンが無くてもブラウザの保存ダイアログは出さない。
+    // 編集中に出ても混乱するだけなので、何も起きないほうがよい
+    event.preventDefault();
+
+    const button = findSaveButton();
+
+    if (button) {
+      button.click();
+    }
+  });
+});
+
+// アコーディオンの開閉を覚える
+// ------------------------------
+// 詳細設定・位置情報・SEO設定のどれを開いておきたいかは人によって違うので、
+// 前回の状態で開くようにする。
+//
+// 保存先は localStorage の acms-entry-editor-accordion:<識別子>。
+// 識別子は data-accordion-key を使い、無ければ id で代用する。
+// field_side.html などでアコーディオンを増やすときは
+// <details> に data-accordion-key を付ければ、ここを触らなくても対象になる。
+//
+// どちらも無いものは保存しない。順番で番号を振ると、
+// アコーディオンが増減したときに別の状態を復元してしまうため。
+ACMS.Ready(function () {
+  const form = document.getElementById('entryForm');
+
+  if (!form) {
+    return;
+  }
+
+  const prefix = 'acms-entry-editor-accordion:';
+
+  form.querySelectorAll('details.acms-admin-accordion').forEach((details) => {
+    const name = details.dataset.accordionKey || details.id;
+
+    if (!name) {
+      return;
+    }
+
+    const key = prefix + name;
+
+    // 復元。保存された値が無ければテンプレートの初期状態のままにする
+    try {
+      const saved = window.localStorage.getItem(key);
+
+      if (saved === 'open' || saved === 'closed') {
+        details.open = saved === 'open';
+      }
+    } catch (error) {
+      // localStorage が使えなくても、その画面では開閉できる
+    }
+
+    details.addEventListener('toggle', () => {
+      try {
+        window.localStorage.setItem(key, details.open ? 'open' : 'closed');
+      } catch (error) {
+        // 保存できなくても現在の画面には反映済み
+      }
+    });
+  });
 });

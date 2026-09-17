@@ -18,7 +18,8 @@
   - .entryFormWrapper の直下に .acms-admin-cssgrid を1枚追加し、
     「メタ情報カラム(.entryFormSide)」と「本文カラム(.entryFormMain)」に分割
   - メタ情報カラム = タイトル／ステータス／カテゴリー／サブカテゴリー／タグ／日時／
-    会員限定／詳細設定／位置情報／カスタムフィールド
+    ファイル名／会員限定／詳細設定／位置情報／カスタムフィールド
+    ※ ファイル名は URL に出るため使う頻度が高く、詳細設定から出して日時の下に置いている
   - 本文カラム = 関連エントリー／ユニットエディター／コンテキスト別フィールド
   - DOM順は「メタ情報 → 本文」だが、1カラム時はCSSで「本文 → メタ情報」に並べ、
     field_foot.html の後へメタ情報を置く
@@ -144,7 +145,7 @@
 <!-- BEGIN code:validator#reserved -->
 <div role="alert" class="acms-admin-alert acms-admin-alert-icon acms-admin-alert-danger">
   <span class="acms-admin-icon acms-admin-icon-attention acms-admin-alert-icon-before" aria-hidden="true"></span>
-  <!--T-->システムで予約されているキーワードです。(詳細設定を開いてファイル名を変更してください)<!--/T-->
+  <!--T-->システムで予約されているキーワードです。(ファイル名を変更してください)<!--/T-->
   <button
     type="button"
     class="js-acms-alert-close acms-admin-alert-icon-after"
@@ -157,7 +158,7 @@
 <!-- BEGIN code:validator#double -->
 <div role="alert" class="acms-admin-alert acms-admin-alert-icon acms-admin-alert-danger">
   <span class="acms-admin-icon acms-admin-icon-attention acms-admin-alert-icon-before" aria-hidden="true"></span>
-  <!--T-->同ブログ内に同じファイル名が存在します。(詳細設定を開いてファイル名を変更してください)<!--/T-->
+  <!--T-->同ブログ内に同じファイル名が存在します。(ファイル名を変更してください)<!--/T-->
   <button
     type="button"
     class="js-acms-alert-close acms-admin-alert-icon-after"
@@ -468,6 +469,59 @@
                 </td>
               </tr>
               @endsection
+              @section("entry-file")
+              <tr id="entry-file-name-display">
+                <th>
+                  <label for="entry-file-name" id="entry-file-name-label">
+                    <!--T-->ファイル名<!--/T-->
+                  </label>
+                </th>
+                <td>
+                  <div class="entryFormFileNameStack acms-admin-hstack">
+                    <input
+                      autocomplete="new-password"
+                      type="text"
+                      name="code"
+                      value="{code}"
+                      id="entry-file-name"
+                      class="acms-admin-form-width-medium acms-admin-font-monospace"
+                      placeholder="例）entry-<!-- BEGIN_IF [{next_eid}/nem] -->{next_eid}<!-- ELSE -->1<!-- END_IF -->.html"
+                    />
+                    <!-- 「空にする」は一旦非表示。入力欄にカラム幅をすべて使わせている。
+                         ファイル名を空にする処理そのものは extension/acms/Hook.php 側にも
+                         あるので、UI を戻すときはそちらとの重複に注意すること。
+
+                         復活させるときはこのコメントを外し、ラベルの文言を
+                         翻訳マーカー（T タグ）で囲み直す。
+                         T タグの閉じ側がコメントの終端と同じ並びで、
+                         中に置くとそこでコメントが切れてしまうため外してある。
+                    <div class="acms-admin-form-checkbox">
+                      <input
+                        type="checkbox"
+                        name="ecd_blank"
+                        value="true"
+                        id="input-checkbox-ecd_blank"
+                      />
+                      <label for="input-checkbox-ecd_blank">
+                        <i class="acms-admin-ico-checkbox"></i>
+                        空にする
+                      </label>
+                    </div>
+                    -->
+                  </div>
+                  <input type="hidden" name="entry[]" value="code" />
+                  <input type="hidden" name="code:validator#maxlength" value="64" id="validator-code-maxlength" />
+                  <div role="alert" aria-live="assertive">
+                    <div data-validator-label="validator-code-maxlength" class="validator-result-{code:validator#maxlength}">
+                      <p class="error-text">
+                        <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
+                        <!--T-->ファイル名は64文字以内で入力してください。<!--/T-->
+                      </p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              @endsection
               @section("entry-members-only")
               <tr id="entry-members-only-display">
                 <th id="entry-members-only-label">
@@ -500,7 +554,7 @@
           @include("/admin/entry/field_base.html")
           </div>
           @endsection
-          <details id="js-entry-details" data-target="#entry-details-table" class="acms-admin-accordion">
+          <details id="js-entry-details" data-target="#entry-details-table" class="acms-admin-accordion" data-accordion-key="details">
             <summary class="acms-admin-accordion-button">
               <!--T-->詳細設定<!--/T-->
               <span class="acms-admin-icon-arrow-small-down acms-admin-margin-left-mini" aria-hidden="true"></span>
@@ -508,51 +562,6 @@
             <div class="acms-admin-accordion-panel">
               <table id="entry-details-table" class="entryFormTable acms-admin-table-entry">
                 <tbody>
-                  @section("entry-file")
-                  <tr id="entry-file-name-display">
-                    <th>
-                      <label for="entry-file-name" id="entry-file-name-label">
-                        <!--T-->ファイル名<!--/T-->
-                      </label>
-                    </th>
-                    <td>
-                      <!-- 入力欄と「空にする」を横並びにする -->
-                      <div class="entryFormFileNameStack acms-admin-hstack">
-                        <input
-                          autocomplete="new-password"
-                          type="text"
-                          name="code"
-                          value="{code}"
-                          id="entry-file-name"
-                          class="acms-admin-form-width-medium acms-admin-font-monospace"
-                          placeholder="例）entry-<!-- BEGIN_IF [{next_eid}/nem] -->{next_eid}<!-- ELSE -->1<!-- END_IF -->.html"
-                        />
-                        <div class="acms-admin-form-checkbox">
-                          <input
-                            type="checkbox"
-                            name="ecd_blank"
-                            value="true"
-                            id="input-checkbox-ecd_blank"
-                          />
-                          <label for="input-checkbox-ecd_blank">
-                            <i class="acms-admin-ico-checkbox"></i>
-                            <!--T-->空にする<!--/T-->
-                          </label>
-                        </div>
-                      </div>
-                      <input type="hidden" name="entry[]" value="code" />
-                      <input type="hidden" name="code:validator#maxlength" value="64" id="validator-code-maxlength" />
-                      <div role="alert" aria-live="assertive">
-                        <div data-validator-label="validator-code-maxlength" class="validator-result-{code:validator#maxlength}">
-                          <p class="error-text">
-                            <span class="acms-admin-icon acms-admin-icon-attention" aria-hidden="true"></span>
-                            <!--T-->ファイル名は64文字以内で入力してください。<!--/T-->
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  @endsection
                   @section("entry-open-date")
                   <tr id="entry-start-date-display">
                     <th id="entry-start-date-label">

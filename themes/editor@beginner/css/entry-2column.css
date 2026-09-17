@@ -93,6 +93,21 @@
     var(--entry-form-wrapper-gutter) + var(--entry-form-main-width) +
       var(--entry-form-column-gap) + var(--entry-form-side-width)
   );
+
+  /* 2カラムにできる最小の幅。両カラムが最小まで縮んだときの合計。
+     行長モードで --entry-form-measure-min が変わるので、この値も連動する。
+       25字 …  400 + 116 + 20 + 280 + 40 =  856px
+       40字 …  528 + 116 + 20 + 280 + 40 =  984px
+       70字 …  640 + 116 + 20 + 280 + 40 = 1096px
+
+     この幅を下回ったら1カラムに戻す。判定は js/entry-2column.js が行い、
+     結果を html[data-entry-columns] に入れる。
+     @container の条件部には var() を書けず、モードごとにしきい値を並べると
+     2カラムの指定（150行）をモードの数だけ複製することになるため。 */
+  --entry-form-two-column-min: calc(
+    var(--entry-form-main-min-width) + var(--entry-form-column-gap) +
+      var(--entry-form-side-min-width) + var(--entry-form-wrapper-gutter)
+  );
 }
 
 /* フォームの最大幅。2カラム分を収められる幅にする。
@@ -250,10 +265,22 @@ html[data-entry-editor-measure='25'] #entryForm {
   --entry-form-measure-min: 25rem;
 }
 
+/* 70字は「広く使いたい」ために選ぶものなので、縮ませない（min = measure）。
+   40字だけ min を 33rem にしているのは iPad mini でも2カラムにするためで、
+   70字で同じことをすると2カラム時に 45字前後まで縮んでしまい、選んだ意味がなくなる。
+   ここを揃えたことで、70字の2カラムは 1576px 以上でだけ成立する。 */
 html[data-entry-editor-measure='70'] #main:has(#entryForm),
 html[data-entry-editor-measure='70'] #entryForm {
   --entry-form-measure: 70rem;
-  --entry-form-measure-min: 40rem;
+  --entry-form-measure-min: 70rem;
+}
+
+/* 70字で1カラムに落ちたときは、フォームの最大幅から設定欄のぶんを外す。
+   本文（最大 1244px）より広げてもパンくずが左に張り出すだけで意味がない。
+   2カラムのときに外してはいけない。フォームが 1284px で頭打ちになり、
+   2カラムに必要な 1576px に永久に届かなくなる。 */
+html[data-entry-columns='1'][data-entry-editor-measure='70'] #main:has(#entryForm),
+html[data-entry-columns='1'][data-entry-editor-measure='70'] #entryForm {
   --entry-form-width: calc(var(--entry-form-wrapper-gutter) + var(--entry-form-main-width));
 }
 
@@ -322,12 +349,16 @@ html[data-entry-editor-measure='70'] #entryForm {
 /* 2カラム。本文・メタ情報とも minmax で伸縮させる。
    幅に余裕があれば 764 / 384、足りなくなると両方が縮んで 644 / 280 まで粘る。
 
-   しきい値 984px = 本文の最小 644 + gap 20 + メタ情報の最小 280
-                    + .entryFormWrapper の左右 padding 20px×2。
-   コンテナは .entryFormBody（= フォームそのものの幅）で、
-   .entryFormWrapper の padding はその内側にあるため、必ず足すこと。
-   ※ 条件部に var() は使えないので、上の変数と値を合わせて手で書いている */
-@container entry-form (min-width: 984px) {
+   ■ 2カラムにするかどうかの判定
+   フォームに使える幅が --entry-form-two-column-min 以上かどうかで決まる。
+   必要な幅は行長モード（25/40/70字）で変わるため、判定は
+   js/entry-2column.js が行い、結果を html[data-entry-columns] に入れている。
+   コンテナクエリを使っていないのは、条件部に var() を書けないため。
+   詳しくは --entry-form-two-column-min の定義を参照。
+
+   以下はこのファイルで唯一のネスト記法。
+   中の指定が 150 行あり、1行ずつセレクタを前置するより見通しがよいため。 */
+html[data-entry-columns='2'] {
 
   .entryFormWrapper .entryFormGrid {
     grid-template-columns:
@@ -648,10 +679,8 @@ html[data-entry-editor-measure='70'] #entryForm {
 }
 
 /* 2カラムでは、右側のステータスラベル・入力欄と上端をそろえる。 */
-@container entry-form (min-width: 984px) {
-  html:not([data-entry-editor-measure='70']) .entryFormMainTitle {
-    padding-top: 6px;
-  }
+html[data-entry-columns='2']:not([data-entry-editor-measure='70']) .entryFormMainTitle {
+  padding-top: 6px;
 }
 
 /* 新規作成時にブロックエディターが画面の高さを使うようにする
@@ -741,14 +770,12 @@ html[data-entry-editor-measure='70'] #entryForm {
 }
 
 /* 2カラムではメタ情報は右に並ぶ。本文だけ覆い、用意できているところは見せる */
-@container entry-form (min-width: 984px) {
-  #entryForm[data-editor-loading] .entryFormGrid::before {
-    content: none;
-  }
+html[data-entry-columns='2'] #entryForm[data-editor-loading] .entryFormGrid::before {
+  content: none;
+}
 
-  #entryForm[data-editor-loading] .entryFormMainBody::before {
-    content: '';
-  }
+html[data-entry-columns='2'] #entryForm[data-editor-loading] .entryFormMainBody::before {
+  content: '';
 }
 
 /* 用意ができた合図。ここで初めてフワッと消える */
@@ -880,9 +907,14 @@ html[data-entry-editor-measure='70'] #entryForm {
   flex-wrap: wrap;
 }
 
+/* 「空にする」を外している間は、入力欄にカラム幅をすべて使わせる。
+   .acms-admin-form-width-medium の max-width: 380px を打ち消す必要がある
+   （2カラム時は別途 100% にしているが、1カラムだと 380px で止まるため）。 */
 .entryFormFileNameStack input[type='text'] {
   flex: 1 1 var(--entry-form-file-name-min-width);
+  width: 100%;
   min-width: var(--entry-form-file-name-min-width);
+  max-width: none;
 }
 
 .entryFormFileNameStack .acms-admin-form-checkbox {
@@ -1034,10 +1066,8 @@ html[data-entry-editor-measure='70'] #entryForm {
   }
 }
 /* 2カラムの縦積みラベルは、他の基本項目と同じ余白を保つ。 */
-@container entry-form (min-width: 984px) {
-  .entryFormMainImage th {
-    padding-top: 7px !important;
-  }
+html[data-entry-columns='2'] .entryFormMainImage th {
+  padding-top: 7px !important;
 }
 
 /* 2カラムの狭いメタ情報欄では、位置情報を1項目ずつ縦に並べる。 */
@@ -1056,23 +1086,21 @@ html[data-entry-editor-measure='70'] #entryForm {
   aspect-ratio: 16 / 9 !important;
 }
 
-@container entry-form (min-width: 984px) {
-  .entryFormGeoDetails .js-open-street-map-editable,
-  .entryFormGeoDetails .js-map-editable {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 8px;
-    align-items: center;
-  }
+html[data-entry-columns='2'] .entryFormGeoDetails .js-open-street-map-editable,
+html[data-entry-columns='2'] .entryFormGeoDetails .js-map-editable {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
 
-  .entryFormGeoDetails .acms-admin-form-group {
-    grid-column: 1 / -1;
-    margin-bottom: 0;
-  }
+html[data-entry-columns='2'] .entryFormGeoDetails .acms-admin-form-group {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
 
-  .entryFormGeoDetails input.acms-admin-form-width-mini {
-    width: 100%;
-  }
+html[data-entry-columns='2'] .entryFormGeoDetails input.acms-admin-form-width-mini {
+  width: 100%;
 }
 
 /* 住所検索は使うときだけ出す
@@ -1123,34 +1151,12 @@ html[data-entry-editor-measure='70'] #entryForm {
   background-color: rgba(0, 0, 0, 0.08);
 }
 
-/* 70字では本文を全幅で先頭に置き、設定欄をその下へ積む。 */
-@container entry-form (min-width: 984px) {
-  html[data-entry-editor-measure='70'] .entryFormWrapper .entryFormGrid {
-    grid-template-columns: minmax(0, var(--entry-form-main-width));
-    height: auto;
-    justify-content: center;
-  }
-
-  html[data-entry-editor-measure='70'] .entryFormWrapper .entryFormMain {
-    grid-area: auto;
-    order: 1;
-  }
-
-  html[data-entry-editor-measure='70'] .entryFormWrapper .entryFormSide {
-    grid-area: auto;
-    order: 2;
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 40rem;
-    justify-self: center;
-  }
-
-  html[data-entry-editor-measure='70'] .entryFormMain,
-  html[data-entry-editor-measure='70'] .entryFormSide {
-    padding-inline: 0;
-    margin-inline: 0;
-    overflow: visible;
-    overscroll-behavior: auto;
-    scrollbar-gutter: auto;
-  }
+/* 70字で1カラムに落ちたときだけ、設定欄の幅を抑えて中央に置く。
+   本文が最大 1244px まで広がるので、設定欄を同じ幅にすると入力欄が間延びする。
+   25字・40字では本文自体がそこまで広くないので、設定欄も本文と同じ幅でよい。 */
+html[data-entry-columns='1'][data-entry-editor-measure='70'] .entryFormWrapper .entryFormSide {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+  justify-self: center;
 }
