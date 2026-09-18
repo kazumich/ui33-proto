@@ -572,6 +572,45 @@ html[data-entry-columns='2'] {
   font-size: var(--entry-form-control-font-size);
 }
 
+/* リッチセレクトが組み上がるまでの場所取り。
+   <acms-category-select> などはカスタム要素で、中身は JS が作る。
+   カスタム要素の既定は display: inline のうえ、JS が動く前の中身は
+   hidden input だけなので、指定が無いと高さがほぼ 0 になり、
+   組み上がった瞬間に下の要素が押し下げられる。
+
+   :empty は使えない。上記のとおり中身が空ではないため一致しない。
+   組み上がった後のリッチセレクトも同じ高さなので、外す必要もない。
+   高さはリッチセレクト本体と同じ変数を参照しているので、片方だけずれることはない。
+   タグのように複数行になるものは min-height なので自然に伸びる。
+
+   メイン画像（field-main-image.html）は比率をフィールド側の HTML で指定しているが、
+   こちらは入力欄の標準の高さで固定なので CSS に置いている。 */
+.entryFormSide :is(acms-category-select, acms-sub-category-select, acms-tag-select) {
+  display: block;
+  min-height: var(--entry-form-control-min-height);
+}
+
+/* 組み上がるまでは、リッチセレクトと同じ枠を描いておく。
+   場所だけ空けても白紙のままなので、あとから枠が現れる動きが目立つ。
+
+   判定は :has(div)。JS 前の中身は hidden input だけで、
+   react-select は組み上がると div を作るので、それを目印にしている。
+
+   :empty と :has(*) は使えない。
+   JS 前から中に hidden input がいるので、それぞれ常に一致しない／一致する。
+
+   値はリッチセレクト本体（acms-admin.css）の既定に合わせてある。
+   変数は .acms-admin-rich-select のスコープで宣言されていてここには届かないので、
+   実際に効くのはフォールバック側。将来スコープが広がればそちらが優先される。 */
+.entryFormSide
+  :is(acms-category-select, acms-sub-category-select, acms-tag-select):not(:has(div)) {
+  box-sizing: border-box;
+  background: var(--acms-admin-rich-select-bg-color, #fff);
+  border: var(--acms-admin-rich-select-border, 1px solid rgb(0 0 0 / 20%));
+  border-radius: var(--acms-admin-rich-select-border-radius, 3px);
+  box-shadow: var(--acms-admin-rich-select-box-shadow, 0 1px 1px 0 rgb(0 0 0 / 10%) inset);
+}
+
 /* カテゴリー・サブカテゴリー・タグは react-select（リッチセレクト）。
    水平パディングは control の padding: 0 5px が固定で入っていて textarea と同じなので、
    そろえるのは文字サイズ・行送り・高さの3つ。 */
@@ -816,8 +855,25 @@ html[data-entry-columns='2'] #entryForm[data-editor-loading] .entryFormMainBody:
   width: 100%;
 }
 
-.entryFormSide {
-  --entry-form-media-ratio: 16 / 9;
+/* JS がドロップエリアを組み立てるまでの場所取り。
+   .js-droparea は空の div なので、指定が無いと高さ 0 から始まって
+   出来上がった瞬間に下の要素が押し下げられる。
+   場所だけ空けても白紙のままなので、本物と同じ点線の枠も描いておく。
+
+   判定は「中に何か要素が入ったか」。
+   :empty ではなく :has(*) にしているのは、テンプレート側の改行が
+   テキストノードとして残ると :empty が外れてしまうため。
+   枠の値は .acms-admin-media-unit-droparea（acms-admin.css）に合わせてある。
+
+   比率（--entry-form-media-ratio）はフィールド側の HTML で指定する。
+   大きさはフィールドごとに変えたいが、枠の見た目は共通なのでここに置いている。
+   @see admin/entry/field-main-image.html */
+.entryFormSide .js-droparea:not(:has(*)) {
+  box-sizing: border-box;
+  display: block;
+  aspect-ratio: var(--entry-form-media-ratio, 16 / 9);
+  border: 1px dashed #c2c2ce;
+  border-radius: 3px;
 }
 
 /* 画像を設定したあとの枠。
@@ -839,7 +895,7 @@ html[data-entry-columns='2'] #entryForm[data-editor-loading] .entryFormMainBody:
   width: 100%;
   height: auto;
   max-height: none;
-  aspect-ratio: var(--entry-form-media-ratio);
+  aspect-ratio: var(--entry-form-media-ratio, 16 / 9);
 
   /* 16:9 でない画像も切り取らずに収める（余った側は枠の背景色が出る）*/
   object-fit: contain;
@@ -864,7 +920,7 @@ html[data-entry-columns='2'] #entryForm[data-editor-loading] .entryFormMainBody:
    16:9 を超えて枠が縦長になるので、上下の余白を詰めておく。 */
 .entryFormSide .acms-admin-media-unit-droparea {
   width: 100%;
-  aspect-ratio: var(--entry-form-media-ratio);
+  aspect-ratio: var(--entry-form-media-ratio, 16 / 9);
   padding-block: 12px;
   border-color: #c2c2ce;
 }

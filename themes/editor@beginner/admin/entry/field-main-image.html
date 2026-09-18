@@ -3,8 +3,14 @@
     <table class="entryFormTable acms-admin-table-entry acms-admin-table-admin-entry">
       <tr id="seo-entry_main_image">
         <th>メイン画像</th>
-        <td class="js-media-field seo-entry_main_image-droparea">
-          <!-- 幅・高さと枠線は css/entry-2column.css で指定している -->
+        <!-- 枠の比率はここで決める。
+             .js-droparea は空の div で中身は JS が作るため、指定が無いと
+             JS が動くまで高さ 0 のままになり、組み上がった瞬間に下が押し下げられる。
+             メディアフィールドを増やすときも、この style を書けば大きさが決まる。
+             CSS に一律で書くと、フィールドごとに変えたいときに書き分けられず、
+             書き忘れにも気づきにくいのでこちらに置いている。
+             枠線と余白の見た目は css/entry-2column.css。 -->
+        <td class="js-media-field seo-entry_main_image-droparea" style="--entry-form-media-ratio: 16 / 9">
           <div class="js-droparea" data-thumbnail="{entry_main_image@thumbnail}" data-type="image"></div>
           <p class="js-text acms-admin-text-danger" style="display:none">許可されていないファイルのため挿入できません。</p>
           <div class="entryFormMainImageActions acms-admin-margin-top-mini">
