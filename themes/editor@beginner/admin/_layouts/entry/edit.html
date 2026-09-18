@@ -284,24 +284,6 @@
         <div class="entryFormSideInner acms-admin-field-container">
           <div class="entryFormHead">
             <table class="entryFormTable acms-admin-table-entry acms-admin-table-admin-entry">
-              @section("entry-title2")
-              <!--
-              <tr id="entry-title2-display">
-                <th id="labelTitle2">
-                  <label for="entry-title2" id="entry-title2-label">タイトル</label>
-                </th>
-                <td>
-                  <textarea
-                    name="title2"
-                    id="entry-title2"
-                    rows="1"
-                    class="acms-admin-form-width-full auto-height js-no-newline"
-                  >{title2}</textarea>
-                  <input type="hidden" name="entry[]" value="title2" />
-                </td>
-              </tr>
-              -->
-              @endsection
               @section("entry-status")
               <tr id="entry-status-display">
                 <th id="labelStatus">
@@ -477,37 +459,33 @@
                   </label>
                 </th>
                 <td>
+                  <!-- 新規作成のときは、次の発番でファイル名を先に入れておく。
+                       要らなければ消して作成すれば空のまま保存される。
+                       「空にする」チェックのように専用の概念を覚えなくてよく、
+                       入力欄の中身がそのまま結果になる。
+
+                       入れるのは新規のときだけ。更新では {code} をそのまま出す。
+                       ここで発番を入れると、意図的にファイル名を空にしてある
+                       既存エントリーを開いただけで名前が付いてしまう。
+
+                       ※ next_eid は編集画面を開いた時点の「次に採番される見込み」。
+                         新規作成の画面を2つ開くと同じ番号が入るので、重なりうる。
+
+                         重なりを止めるにはコンフィグの「重複チェック」を有効にすること。
+                         （ブログ > コンフィグ > 編集設定 の check_duplicate_entry_code）
+                         これが off だと ACMS_POST_Entry_Insert / Update が
+                         code の double 検証そのものを呼ばないため、そのまま保存される。
+                         config.system.yaml に書いても、DB のブログコンフィグが優先される。 -->
                   <div class="entryFormFileNameStack acms-admin-hstack">
                     <input
                       autocomplete="new-password"
                       type="text"
                       name="code"
-                      value="{code}"
+                      value="<!-- BEGIN_IF [%{EID}/em] -->entry-<!-- BEGIN_IF [{next_eid}/nem] -->{next_eid}<!-- ELSE -->1<!-- END_IF -->.html<!-- ELSE -->{code}<!-- END_IF -->"
                       id="entry-file-name"
                       class="acms-admin-form-width-medium acms-admin-font-monospace"
                       placeholder="例）entry-<!-- BEGIN_IF [{next_eid}/nem] -->{next_eid}<!-- ELSE -->1<!-- END_IF -->.html"
                     />
-                    <!-- 「空にする」は一旦非表示。入力欄にカラム幅をすべて使わせている。
-                         ファイル名を空にする処理そのものは extension/acms/Hook.php 側にも
-                         あるので、UI を戻すときはそちらとの重複に注意すること。
-
-                         復活させるときはこのコメントを外し、ラベルの文言を
-                         翻訳マーカー（T タグ）で囲み直す。
-                         T タグの閉じ側がコメントの終端と同じ並びで、
-                         中に置くとそこでコメントが切れてしまうため外してある。
-                    <div class="acms-admin-form-checkbox">
-                      <input
-                        type="checkbox"
-                        name="ecd_blank"
-                        value="true"
-                        id="input-checkbox-ecd_blank"
-                      />
-                      <label for="input-checkbox-ecd_blank">
-                        <i class="acms-admin-ico-checkbox"></i>
-                        空にする
-                      </label>
-                    </div>
-                    -->
                   </div>
                   <input type="hidden" name="entry[]" value="code" />
                   <input type="hidden" name="code:validator#maxlength" value="64" id="validator-code-maxlength" />

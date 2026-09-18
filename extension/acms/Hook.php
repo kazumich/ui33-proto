@@ -7,7 +7,7 @@ namespace Acms\Custom;
  */
 class Hook
 {
-    /** 新規作成・更新リクエストの「空にする」。複製・インポートには適用しない。 */
+    /** 新規作成・更新でファイル名が空のまま送られてきたか。複製・インポートには適用しない。 */
     private bool $blankEntryCode = false;
 
     private bool $fillInsertedMainImage = false;
@@ -166,9 +166,16 @@ class Hook
 
         $post = $thisModule->Post;
 
-        // ファイル名の「空にする」。新規作成・更新のどちらでも受け付ける。
-        // チェックが外れているときは値そのものが送られてこないので、false のままになる。
-        $this->blankEntryCode = $post->get('ecd_blank') === 'true';
+        // ファイル名を空のまま保存する。新規作成・更新のどちらでも受け付ける。
+        //
+        // 標準では、欄を空にして送っても保存処理の中でファイル名が生成される。
+        // 編集画面は新規作成時に次の発番を入れてあり、それを消して保存したときは
+        // 「名前を付けない」という指示なので、生成されたものを afterPostFire で空へ戻す。
+        //
+        // 対象はファイル名の欄を持つフォームからの送信だけに絞る。
+        // 欄が無い画面では entry[] に code が入らず、空文字と区別が付かないため。
+        $this->blankEntryCode = in_array('code', $post->getArray('entry'), true)
+            && $post->get('code') === '';
 
         // フォームで指定された画像フィールド名。未指定・空欄はテーマの既定名。
         $this->mainImageField = trim($post->get('main_image_field')) ?: 'entry_main_image';
